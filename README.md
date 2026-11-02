@@ -80,9 +80,32 @@ A full-featured amortization and asset financing web application built with **Ja
 - JDK 25 installed and available on your `PATH`.
 
 ### Running the Application
+
+#### Option A: Running with Gradle (Local)
 ```bash
 ./gradlew bootRun
 ```
+
+#### Option B: Running with Docker
+1. **Build the Docker image**:
+   ```bash
+   docker build -t amortization-app:latest .
+   ```
+2. **Run the container**:
+   ```bash
+   docker run -d --name amortization-app -p 8080:8080 amortization-app:latest
+   ```
+
+#### Option C: Running with Docker Compose
+```bash
+docker compose up -d
+```
+To view logs or stop the container:
+```bash
+docker compose logs -f
+docker compose down
+```
+
 Access the application at: `http://localhost:8080/`
 
 ### Running the Test Suite
