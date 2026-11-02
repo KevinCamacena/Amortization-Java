@@ -104,3 +104,4 @@ src/
 │       └── templates/                    # Thymeleaf templates (form, detail, list, compare)
 └── test/                                 # Unit and integration test suites
 ```
+
