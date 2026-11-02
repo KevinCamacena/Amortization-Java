@@ -78,8 +78,17 @@
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
             <h1>Compare Loan Scenarios</h1>
-            <div style="display: flex; gap: 0.75rem;">
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
                 <a th:href="@{/loans}" class="btn btn-secondary">&larr; Back to Loans</a>
+                <a th:if="${#lists.size(summaries) >= 2}"
+                   th:href="@{/loans/compare/export/pdf(loanIds=${selectedIds})}"
+                   class="btn btn-success" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                    </svg>
+                    Export Comparison PDF
+                </a>
                 <a th:href="@{/loans/new}" class="btn btn-primary">+ New Loan</a>
             </div>
         </div>
@@ -132,9 +141,19 @@
 
             <!-- Side-by-Side Comparison Matrix -->
             <div class="card" style="padding: 0; overflow: hidden;">
-                <div style="padding: 1.25rem 1.5rem 0.5rem 1.5rem;">
-                    <h2 style="margin-bottom: 0.5rem; border-bottom: none; padding-bottom: 0;">Detailed Side-by-Side Matrix</h2>
-                    <p style="color: #64748b; font-size: 0.88rem;">Compare monthly payments, total interest costs, and financing parameters across scenarios.</p>
+                <div style="padding: 1.25rem 1.5rem 0.5rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <h2 style="margin-bottom: 0.25rem; border-bottom: none; padding-bottom: 0;">Detailed Side-by-Side Matrix</h2>
+                        <p style="color: #64748b; font-size: 0.88rem; margin: 0;">Compare monthly payments, total interest costs, and financing parameters across scenarios.</p>
+                    </div>
+                    <a th:href="@{/loans/compare/export/pdf(loanIds=${selectedIds})}"
+                       class="btn btn-success" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                        </svg>
+                        Export PDF
+                    </a>
                 </div>
 
                 <div class="table-responsive">
