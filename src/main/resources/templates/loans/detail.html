@@ -7,57 +7,96 @@
 </head>
 <body>
     <nav class="navbar">
-        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <h1 style="margin: 0;"><a th:href="@{/}" style="color: white; text-decoration: none;">Amortization Calculator</a></h1>
         <a th:href="@{/loans}">My Loans</a>
         <a th:href="@{/loans/new}">New Loan</a>
         <a th:href="@{/loans/compare}">Compare</a>
     </nav>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
             <h1><span th:text="${loan.name}">Loan</span></h1>
-            <div>
-                <a th:href="@{/loans}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">&larr; Back</a>
-                <a th:href="@{/loans/{id}/edit(id=${loan.id})}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Edit</a>
-                <a th:href="@{/loans/{id}/export/csv(id=${loan.id}, includeExtra=${includeExtra})}" class="btn btn-success" style="padding: 0.5rem 1rem;">Export CSV</a>
-                <a th:href="@{/loans/{id}/export/pdf(id=${loan.id}, includeExtra=${includeExtra})}" class="btn btn-success" style="padding: 0.5rem 1rem;">Export PDF</a>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a th:href="@{/loans}" class="btn btn-secondary">&larr; Back</a>
+                <a th:href="@{/loans/{id}/edit(id=${loan.id})}" class="btn btn-secondary">Edit</a>
+                <a th:href="@{/loans/{id}/export/csv(id=${loan.id}, includeExtra=${includeExtra})}" class="btn btn-success">Export CSV</a>
+                <a th:href="@{/loans/{id}/export/pdf(id=${loan.id}, includeExtra=${includeExtra})}" class="btn btn-success">Export PDF</a>
             </div>
         </div>
 
-        <div class="card">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
-                <div>
-                    <div style="color: #666; font-size: 0.85rem;">Loan Amount</div>
-                    <div style="font-size: 1.5rem; font-weight: bold;" th:text="${#numbers.formatDecimal(loan.principal, 1, 2)}">0.00</div>
+        <!-- Savings Impact Banner (when extra payments are active) -->
+        <div th:if="${payoffComparison.hasActiveExtraPayments and payoffComparison.monthsSaved > 0}" class="savings-banner">
+            <h3>🎉 Extra Payments Acceleration Impact</h3>
+            <p style="opacity: 0.95;">By making extra payments, you pay off your loan early and save substantially on interest:</p>
+            <div class="savings-metrics">
+                <div class="savings-stat">
+                    <div class="label">Time Saved</div>
+                    <div class="value" th:text="${payoffComparison.monthsSaved} + ' Months'">0 Months</div>
+                    <small style="opacity: 0.85;">Payoff in <span th:text="${payoffComparison.acceleratedMonths}">0</span> mos vs <span th:text="${payoffComparison.standardMonths}">0</span></small>
                 </div>
-                <div>
-                    <div style="color: #666; font-size: 0.85rem;">Interest Rate</div>
-                    <div style="font-size: 1.5rem; font-weight: bold;" th:text="${loan.annualInterestRate} + '%'">0%</div>
+                <div class="savings-stat">
+                    <div class="label">Total Interest Saved</div>
+                    <div class="value" th:text="'$' + ${#numbers.formatDecimal(payoffComparison.interestSaved, 1, 2)}">$0.00</div>
+                    <small style="opacity: 0.85;">Interest: $<span th:text="${#numbers.formatDecimal(payoffComparison.acceleratedTotalInterest, 1, 2)}">0</span> vs $<span th:text="${#numbers.formatDecimal(payoffComparison.standardTotalInterest, 1, 2)}">0</span></small>
                 </div>
-                <div>
-                    <div style="color: #666; font-size: 0.85rem;">Term</div>
-                    <div style="font-size: 1.5rem; font-weight: bold;" th:text="${loan.termMonths} + ' months'">0</div>
-                </div>
-                <div>
-                    <div style="color: #666; font-size: 0.85rem;">Monthly Payment</div>
-                    <div style="font-size: 1.5rem; font-weight: bold; color: #3498db;" th:text="${#numbers.formatDecimal(loan.monthlyPayment, 1, 2)}">0.00</div>
+                <div class="savings-stat">
+                    <div class="label">Total Loan Cost</div>
+                    <div class="value" th:text="'$' + ${#numbers.formatDecimal(payoffComparison.acceleratedTotalCost, 1, 2)}">$0.00</div>
+                    <small style="opacity: 0.85;">Down from $<span th:text="${#numbers.formatDecimal(payoffComparison.standardTotalCost, 1, 2)}">0</span></small>
                 </div>
             </div>
         </div>
 
+        <!-- Loan Summary Details -->
         <div class="card">
-            <form th:action="@{/loans/{id}(id=${loan.id})}" method="get" style="margin-bottom: 1rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="checkbox" name="includeExtra" th:checked="${includeExtra}" onchange="this.closest('form').submit()" />
-                    Include extra payments in schedule
-                </label>
-            </form>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem;">
+                <div th:if="${loan.totalPrice != null && loan.totalPrice > 0}">
+                    <div style="color: #64748b; font-size: 0.85rem; font-weight: 500;">Car / Total Cost</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: #0f172a;" th:text="'$' + ${#numbers.formatDecimal(loan.totalPrice, 1, 2)}">$0.00</div>
+                </div>
+                <div th:if="${loan.downPayment != null && loan.downPayment > 0}">
+                    <div style="color: #64748b; font-size: 0.85rem; font-weight: 500;">Down Payment</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: #16a34a;">
+                        <span th:text="'$' + ${#numbers.formatDecimal(loan.downPayment, 1, 2)}">$0.00</span>
+                        <span th:if="${loan.downPaymentPercent != null}" style="font-size: 0.85rem; color: #64748b; font-weight: normal;" th:text="'(' + ${#numbers.formatDecimal(loan.downPaymentPercent, 1, 1)} + '%)'">(0%)</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="color: #64748b; font-size: 0.85rem; font-weight: 500;">Financed Loan Amount</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: #0f172a;" th:text="'$' + ${#numbers.formatDecimal(loan.principal, 1, 2)}">$0.00</div>
+                </div>
+                <div>
+                    <div style="color: #64748b; font-size: 0.85rem; font-weight: 500;">Interest Rate</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: #0f172a;" th:text="${loan.annualInterestRate} + '%'">0%</div>
+                </div>
+                <div>
+                    <div style="color: #64748b; font-size: 0.85rem; font-weight: 500;">Original Term</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: #0f172a;" th:text="${loan.termMonths} + ' months'">0</div>
+                </div>
+                <div>
+                    <div style="color: #64748b; font-size: 0.85rem; font-weight: 500;">Monthly Base Payment</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: #2563eb;" th:text="'$' + ${#numbers.formatDecimal(loan.monthlyPayment, 1, 2)}">$0.00</div>
+                </div>
+            </div>
+        </div>
 
-            <div id="extraPaymentsSection" th:if="${!#lists.isEmpty(loan.extraPayments)}">
-                <h3>Extra Payments</h3>
+        <!-- Extra Payments Section -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                <h2 style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">Extra Payments Management</h2>
+                <form th:action="@{/loans/{id}(id=${loan.id})}" method="get">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #334155;">
+                        <input type="checkbox" name="includeExtra" th:checked="${includeExtra}" onchange="this.closest('form').submit()" />
+                        Include extra payments in schedule &amp; charts
+                    </label>
+                </form>
+            </div>
+
+            <div th:if="${!#lists.isEmpty(loan.extraPayments)}" class="table-responsive" style="margin-bottom: 1.25rem;">
                 <table>
                     <thead>
                         <tr>
-                            <th>Month</th>
+                            <th>Recurrence</th>
+                            <th>Schedule</th>
                             <th>Amount</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -65,23 +104,26 @@
                     </thead>
                     <tbody>
                         <tr th:each="ep : ${loan.extraPayments}">
-                            <td th:text="${ep.monthNumber}">1</td>
-                            <td th:text="${#numbers.formatDecimal(ep.amount, 1, 2)}">0.00</td>
                             <td>
-                                <span th:text="${ep.enabled ? 'Enabled' : 'Disabled'}"
-                                      th:style="${ep.enabled ? 'color: green' : 'color: red'}">Enabled</span>
+                                <span class="badge" th:classappend="${ep.recurrenceType.name() == 'MONTHLY' ? 'badge-primary' : (ep.recurrenceType.name() == 'ANNUALLY' ? 'badge-warning' : 'badge-info')}"
+                                      th:text="${ep.recurrenceType.displayName}">One-time</span>
+                            </td>
+                            <td th:text="${ep.formattedSchedule}">Every Month</td>
+                            <td style="font-weight: 600;" th:text="'$' + ${#numbers.formatDecimal(ep.amount, 1, 2)}">$0.00</td>
+                            <td>
+                                <span class="badge" th:classappend="${ep.enabled ? 'badge-success' : 'badge-danger'}"
+                                      th:text="${ep.enabled ? 'Active' : 'Disabled'}">Active</span>
                             </td>
                             <td>
                                 <form th:action="@{/loans/{id}/toggle-extra-payment(id=${loan.id})}" method="post" style="display: inline;">
                                     <input type="hidden" name="extraPaymentId" th:value="${ep.id}" />
-                                    <input type="hidden" name="enabled" th:value="${!ep.enabled}" />
-                                    <button type="submit" class="btn" style="padding: 0.25rem 0.5rem;"
-                                            th:text="${ep.enabled ? 'Disable' : 'Enable'}">Toggle</button>
+                                    <button type="submit" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; background: #e2e8f0; color: #334155;"
+                                            th:text="${ep.enabled ? 'Pause' : 'Enable'}">Toggle</button>
                                 </form>
                                 <form th:action="@{/loans/{id}/remove-extra-payment(id=${loan.id})}" method="post" style="display: inline;"
                                       onsubmit="return confirm('Remove this extra payment?');">
                                     <input type="hidden" name="extraPaymentId" th:value="${ep.id}" />
-                                    <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem;">Remove</button>
+                                    <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Delete</button>
                                 </form>
                             </td>
                         </tr>
@@ -89,153 +131,352 @@
                 </table>
             </div>
 
-            <div style="margin: 1rem 0;">
-                <a href="#" onclick="addExtraPayment(); return false;" class="btn btn-primary">+ Add Extra Payment</a>
+            <div>
+                <button type="button" onclick="toggleExtraPaymentForm()" class="btn btn-primary" id="btnToggleAddExtra">
+                    + Add Extra Payment (Recurring or One-Time)
+                </button>
             </div>
 
-            <div id="addExtraPaymentForm" style="display: none;" class="form-inline">
-                <form th:action="@{/loans/{id}/extra-payment(id=${loan.id})}" method="post">
-                    <div class="form-group">
-                        <label>Month</label>
-                        <input name="monthNumber" type="number" min="1" placeholder="e.g., 12" required />
+            <!-- Add Extra Payment Form -->
+            <div id="addExtraPaymentForm" style="display: none; margin-top: 1.25rem; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1.25rem;">
+                <h3 style="font-size: 1.1rem; color: #1e293b; margin-bottom: 1rem;">Add Extra Payment</h3>
+                <form th:action="@{/loans/{id}/extra-payment(id=${loan.id})}" method="post" id="extraPaymentSubmitForm">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-start;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="modalRecurrenceType">Frequency</label>
+                            <select id="modalRecurrenceType" name="recurrenceType" onchange="handleRecurrenceChange()">
+                                <option th:each="type : ${recurrenceTypes}" th:value="${type.name()}" th:text="${type.displayName}"></option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label id="lblMonthNumber" for="modalMonthNumber">Starting Month</label>
+                            <div class="input-group">
+                                <span class="input-prefix">Mo</span>
+                                <input id="modalMonthNumber" name="monthNumber" type="number" min="1" th:max="${loan.termMonths}" value="1" required />
+                            </div>
+                            <div class="validation-hint">e.g. 1 for starting immediately</div>
+                        </div>
+
+                        <div class="form-group" id="groupEndMonth" style="margin-bottom: 0; display: none;">
+                            <label for="modalEndMonth">Ending Month (Optional)</label>
+                            <div class="input-group">
+                                <span class="input-prefix">Mo</span>
+                                <input id="modalEndMonth" name="endMonth" type="number" min="1" th:max="${loan.termMonths}" placeholder="Till payoff" />
+                            </div>
+                            <div class="validation-hint">Leave blank to apply until payoff</div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="modalAmount">Extra Amount ($)</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input id="modalAmount" name="amount" type="number" step="0.01" min="1" placeholder="e.g. 100" required />
+                            </div>
+                            <div class="validation-hint" id="extraAmountHint">Extra principal payment</div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Amount ($)</label>
-                        <input name="amount" type="number" step="0.01" min="0" placeholder="1000" required />
+
+                    <div style="margin-top: 1.25rem; display: flex; gap: 0.75rem;">
+                        <button type="submit" class="btn btn-success">Save Payment</button>
+                        <button type="button" class="btn btn-secondary" onclick="toggleExtraPaymentForm()">Cancel</button>
                     </div>
-                    <button type="submit" class="btn btn-success">Add</button>
-                    <button type="button" class="btn btn-secondary" onclick="toggleExtraPaymentForm()">Cancel</button>
                 </form>
             </div>
         </div>
 
+        <!-- Interactive Visualizations -->
         <div class="card">
-            <h2>Amortization Schedule</h2>
+            <div class="chart-header">
+                <h2>Interactive Payoff &amp; Visualizations</h2>
+                <div class="chart-tabs">
+                    <button class="chart-tab-btn active" onclick="switchChart('payoff')">Payoff Curve</button>
+                    <button class="chart-tab-btn" onclick="switchChart('breakdown')">Amortization Curve</button>
+                    <button class="chart-tab-btn" onclick="switchChart('donut')">Cost Breakdown</button>
+                </div>
+            </div>
+
             <div class="chart-container">
                 <canvas id="amortizationChart"></canvas>
             </div>
         </div>
 
+        <!-- Schedule Table -->
         <div class="card">
-            <h2>Schedule Details</h2>
-            <div style="overflow-x: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+                <h2>Amortization Schedule Details</h2>
+                <span style="font-size: 0.85rem; color: #64748b;">
+                    Showing <strong th:text="${#lists.size(schedule)}">0</strong> monthly payments
+                </span>
+            </div>
+            <div class="table-responsive" style="max-height: 550px; overflow-y: auto;">
                 <table>
                     <thead>
                         <tr>
                             <th>Month</th>
-                            <th>Payment</th>
-                            <th>Principal</th>
-                            <th>Interest</th>
-                            <th>Total Principal</th>
-                            <th>Total Interest</th>
-                            <th>Balance</th>
+                            <th class="text-right">Total Payment</th>
+                            <th class="text-right">Principal</th>
+                            <th class="text-right">Interest</th>
+                            <th class="text-right">Total Principal</th>
+                            <th class="text-right">Total Interest</th>
+                            <th class="text-right">Remaining Balance</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="row : ${schedule}">
-                            <td th:text="${row.month}">1</td>
-                            <td th:text="${#numbers.formatDecimal(row.payment, 1, 2)}">0.00</td>
-                            <td th:text="${#numbers.formatDecimal(row.principalPaid, 1, 2)}">0.00</td>
-                            <td th:text="${#numbers.formatDecimal(row.interestPaid, 1, 2)}">0.00</td>
-                            <td th:text="${#numbers.formatDecimal(row.totalPrincipalPaid, 1, 2)}">0.00</td>
-                            <td th:text="${#numbers.formatDecimal(row.totalInterestPaid, 1, 2)}">0.00</td>
-                            <td th:text="${#numbers.formatDecimal(row.remainingBalance, 1, 2)}">0.00</td>
+                            <td style="font-weight: 600;" th:text="${row.month}">1</td>
+                            <td class="text-right" th:text="'$' + ${#numbers.formatDecimal(row.payment, 1, 2)}">$0.00</td>
+                            <td class="text-right" style="color: #2563eb; font-weight: 500;" th:text="'$' + ${#numbers.formatDecimal(row.principalPaid, 1, 2)}">$0.00</td>
+                            <td class="text-right" style="color: #dc2626;" th:text="'$' + ${#numbers.formatDecimal(row.interestPaid, 1, 2)}">$0.00</td>
+                            <td class="text-right" th:text="'$' + ${#numbers.formatDecimal(row.totalPrincipalPaid, 1, 2)}">$0.00</td>
+                            <td class="text-right" th:text="'$' + ${#numbers.formatDecimal(row.totalInterestPaid, 1, 2)}">$0.00</td>
+                            <td class="text-right" style="font-weight: 600; color: #0f172a;" th:text="'$' + ${#numbers.formatDecimal(row.remainingBalance, 1, 2)}">$0.00</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
-        <script th:inline="javascript">
-            const chartData = /*[[${chartData}]]*/ [];
-            const labels = chartData.map(d => d.month);
-            const totalPrincipal = chartData.map(d => d.principalPaid);
-            const totalInterest = chartData.map(d => d.interestPaid);
-            const balance = chartData.map(d => d.remainingBalance);
+    <script th:inline="javascript">
+        const standardChartData = /*[[${standardChartData}]]*/ [];
+        const acceleratedChartData = /*[[${acceleratedChartData}]]*/ [];
+        const loanPrincipal = /*[[${loan.principal}]]*/ 0;
+        const downPayment = /*[[${loan.downPayment}]]*/ 0;
+        const payoffComparison = /*[[${payoffComparison}]]*/ {};
 
+        let currentChart = null;
+        let currentChartMode = 'payoff';
+
+        function initCharts() {
+            renderPayoffChart();
+        }
+
+        function switchChart(mode) {
+            currentChartMode = mode;
+            document.querySelectorAll('.chart-tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            if (mode === 'payoff') {
+                renderPayoffChart();
+            } else if (mode === 'breakdown') {
+                renderBreakdownChart();
+            } else if (mode === 'donut') {
+                renderDonutChart();
+            }
+        }
+
+        function renderPayoffChart() {
             const ctx = document.getElementById('amortizationChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
+            const maxMonths = Math.max(standardChartData.length, acceleratedChartData.length);
+            const labels = Array.from({length: maxMonths}, (_, i) => 'Month ' + (i + 1));
+
+            const standardBalance = labels.map((_, i) => i < standardChartData.length ? standardChartData[i].remainingBalance : 0);
+            const acceleratedBalance = labels.map((_, i) => i < acceleratedChartData.length ? acceleratedChartData[i].remainingBalance : 0);
+
+            const datasets = [
+                {
+                    label: 'Standard Balance (No Extra Payments)',
+                    data: standardBalance,
+                    borderColor: '#94a3b8',
+                    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                    borderDash: [5, 5],
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1
+                }
+            ];
+
+            if (payoffComparison.hasActiveExtraPayments) {
+                datasets.push({
+                    label: 'Accelerated Balance (With Extra Payments)',
+                    data: acceleratedBalance,
+                    borderColor: '#16a34a',
+                    backgroundColor: 'rgba(22, 163, 74, 0.15)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.1
+                });
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})
+                            }
+                        },
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: v => '$' + v.toLocaleString() },
+                            title: { display: true, text: 'Remaining Balance ($)' }
+                        },
+                        x: {
+                            ticks: { maxTicksLimit: 20 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderBreakdownChart() {
+            const ctx = document.getElementById('amortizationChart').getContext('2d');
+            const data = (payoffComparison.hasActiveExtraPayments ? acceleratedChartData : standardChartData);
+            const labels = data.map(d => 'Month ' + d.month);
+            const totalPrincipal = data.map(d => d.principalPaid);
+            const totalInterest = data.map(d => d.interestPaid);
+            const balance = data.map(d => d.remainingBalance);
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
                 data: {
                     labels: labels,
                     datasets: [
                         {
                             label: 'Total Principal Paid',
                             data: totalPrincipal,
-                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
-                            borderColor: 'rgba(52, 152, 219, 1)',
-                            borderWidth: 1,
-                            type: 'line',
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                            borderWidth: 2,
                             fill: false,
-                            tension: 0.1,
-                            yAxisID: 'y'
+                            tension: 0.1
                         },
                         {
                             label: 'Total Interest Paid',
                             data: totalInterest,
-                            backgroundColor: 'rgba(231, 76, 60, 0.7)',
-                            borderColor: 'rgba(231, 76, 60, 1)',
-                            borderWidth: 1,
-                            type: 'line',
+                            borderColor: '#dc2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.05)',
+                            borderWidth: 2,
                             fill: false,
-                            tension: 0.1,
-                            yAxisID: 'y'
+                            tension: 0.1
                         },
                         {
                             label: 'Remaining Balance',
                             data: balance,
-                            backgroundColor: 'rgba(46, 204, 113, 0.3)',
-                            borderColor: 'rgba(46, 204, 113, 1)',
+                            borderColor: '#16a34a',
+                            backgroundColor: 'rgba(22, 163, 74, 0.1)',
                             borderWidth: 2,
-                            type: 'line',
                             fill: true,
-                            tension: 0.1,
-                            yAxisID: 'y'
+                            tension: 0.1
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         tooltip: {
-                            mode: 'index',
-                            intersect: false,
                             callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
-                                }
+                                label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})
                             }
                         },
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
+                        legend: { position: 'top' }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
-                            }
+                            ticks: { callback: v => '$' + v.toLocaleString() },
+                            title: { display: true, text: 'Amount ($)' }
                         },
                         x: {
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 45
+                            ticks: { maxTicksLimit: 20 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderDonutChart() {
+            const ctx = document.getElementById('amortizationChart').getContext('2d');
+            const totalInterest = payoffComparison.hasActiveExtraPayments 
+                ? payoffComparison.acceleratedTotalInterest 
+                : payoffComparison.standardTotalInterest;
+
+            const labels = ['Loan Principal', 'Total Interest'];
+            const values = [loanPrincipal, totalInterest];
+            const colors = ['#2563eb', '#dc2626'];
+
+            if (downPayment && downPayment > 0) {
+                labels.unshift('Down Payment');
+                values.unshift(downPayment);
+                colors.unshift('#16a34a');
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const total = values.reduce((a, b) => a + b, 0);
+                                    const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                                    return ctx.label + ': $' + ctx.parsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (' + pct + '%)';
+                                }
                             }
                         }
                     }
                 }
             });
+        }
 
-            function toggleExtraPaymentForm() {
-                const form = document.getElementById('addExtraPaymentForm');
-                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        function toggleExtraPaymentForm() {
+            const form = document.getElementById('addExtraPaymentForm');
+            form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+        }
+
+        function handleRecurrenceChange() {
+            const rec = document.getElementById('modalRecurrenceType').value;
+            const endGroup = document.getElementById('groupEndMonth');
+            const lblStart = document.getElementById('lblMonthNumber');
+            const hint = document.getElementById('extraAmountHint');
+
+            if (rec === 'ONE_TIME') {
+                endGroup.style.display = 'none';
+                lblStart.textContent = 'Payment Month';
+                hint.textContent = 'One-time extra principal payment';
+            } else if (rec === 'MONTHLY') {
+                endGroup.style.display = 'block';
+                lblStart.textContent = 'Starting Month';
+                hint.textContent = 'Extra payment added every month';
+            } else if (rec === 'ANNUALLY') {
+                endGroup.style.display = 'block';
+                lblStart.textContent = 'Starting Month';
+                hint.textContent = 'Extra payment added once a year (every 12 mos)';
             }
-        </script>
-    </div>
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            handleRecurrenceChange();
+        });
+    </script>
 </body>
 </html>

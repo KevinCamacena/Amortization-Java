@@ -30,9 +30,13 @@ public class LoanService {
             .orElseThrow(() -> new LoanNotFoundException(id));
 
         existing.setName(loan.getName());
+        existing.setTotalPrice(loan.getTotalPrice());
+        existing.setDownPayment(loan.getDownPayment());
+        existing.setDownPaymentPercent(loan.getDownPaymentPercent());
         existing.setPrincipal(loan.getPrincipal());
         existing.setAnnualInterestRate(loan.getAnnualInterestRate());
         existing.setTermMonths(loan.getTermMonths());
+        existing.syncFinancingFields();
 
         for (ExtraPayment ep : loan.getExtraPayments()) {
             ep.setId(null);

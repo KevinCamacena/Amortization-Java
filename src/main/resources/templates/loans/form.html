@@ -6,124 +6,384 @@
 </head>
 <body>
     <nav class="navbar">
-        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <h1 style="margin: 0;"><a th:href="@{/}" style="color: white; text-decoration: none;">Amortization Calculator</a></h1>
         <a th:href="@{/loans}">My Loans</a>
         <a th:href="@{/loans/new}">New Loan</a>
         <a th:href="@{/loans/compare}">Compare</a>
     </nav>
     <div class="container">
-        <h1 th:text="${loan.id != null ? 'Edit Loan' : 'New Loan'}">Loan Form</h1>
+        <h1 th:text="${loan.id != null ? 'Edit Loan: ' + loan.name : 'Calculate New Loan'}">Loan Form</h1>
 
+        <!-- Form for Edit -->
         <div class="card" th:if="${loan.id != null}">
-            <form th:object="${loan}" th:action="@{/loans/{id}(id=${loan.id})}" method="post">
+            <form th:object="${loan}" th:action="@{/loans/{id}(id=${loan.id})}" method="post" class="loan-form" novalidate>
                 <div class="form-group">
-                    <label for="name">Loan Name</label>
-                    <input type="text" id="name" th:field="*{name}" placeholder="e.g., Mortgage 2025" />
+                    <label for="name">Loan / Vehicle Name</label>
+                    <input type="text" id="name" th:field="*{name}" placeholder="e.g., Honda Civic 2025, Home Mortgage" required />
+                    <div class="validation-hint">Give this loan a recognizable name</div>
                     <div class="errors" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
                 </div>
 
+                <!-- Car Cost & Down Payment Box -->
+                <div class="purchase-box" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <span style="font-weight: 700; color: #0f172a; font-size: 1rem;">
+                            🚗 Vehicle / Purchase Cost &amp; First Payment
+                        </span>
+                        <span style="font-size: 0.82rem; color: #64748b;">Auto-calculates financed principal</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="totalPrice">Total Cost / Car Price</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="totalPrice" th:field="*{totalPrice}" class="calc-total" step="0.01" min="0" placeholder="e.g., 35000" />
+                            </div>
+                            <div class="validation-hint hint-total">Total price before down payment</div>
+                            <div class="errors" th:if="${#fields.hasErrors('totalPrice')}" th:errors="*{totalPrice}"></div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="downPaymentPercent">First Installment (%)</label>
+                            <div class="input-group">
+                                <input type="number" id="downPaymentPercent" th:field="*{downPaymentPercent}" class="calc-pct" step="0.1" min="0" max="100" placeholder="e.g., 20" />
+                                <span class="input-suffix">%</span>
+                            </div>
+                            <div class="validation-hint hint-pct">Down payment percentage</div>
+                            <div class="errors" th:if="${#fields.hasErrors('downPaymentPercent')}" th:errors="*{downPaymentPercent}"></div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="downPayment">First Installment ($)</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="downPayment" th:field="*{downPayment}" class="calc-down" step="0.01" min="0" placeholder="e.g., 7000" />
+                            </div>
+                            <div class="validation-hint hint-down">Down payment in dollars</div>
+                            <div class="errors" th:if="${#fields.hasErrors('downPayment')}" th:errors="*{downPayment}"></div>
+                        </div>
+                    </div>
+
+                    <div class="financing-summary" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 6px; font-size: 0.9rem; color: #0369a1;">
+                        <span><strong>Car Cost:</strong> $<span class="summary-total">0.00</span></span> &bull; 
+                        <span><strong>Down Payment (<span class="summary-pct">0</span>%):</strong> $<span class="summary-down">0.00</span></span> &bull; 
+                        <span><strong>Financed Amount:</strong> $<span class="summary-principal">0.00</span></span>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label for="principal">Loan Amount ($)</label>
-                    <input type="number" id="principal" th:field="*{principal}" step="0.01" min="0" placeholder="300000" />
+                    <label for="principal">Financed Loan Amount (Principal)</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" id="principal" th:field="*{principal}" class="calc-principal" step="0.01" min="1" placeholder="e.g., 28000" required />
+                    </div>
+                    <div class="validation-hint hint-principal">Total amount financed to calculate amortized payments</div>
                     <div class="errors" th:if="${#fields.hasErrors('principal')}" th:errors="*{principal}"></div>
                 </div>
 
-                <div class="form-group">
-                    <label for="annualInterestRate">Annual Interest Rate (%)</label>
-                    <input type="number" id="annualInterestRate" th:field="*{annualInterestRate}" step="0.01" min="0" placeholder="6.5" />
-                    <div class="errors" th:if="${#fields.hasErrors('annualInterestRate')}" th:errors="*{annualInterestRate}"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="termMonths">Loan Term (months)</label>
-                    <input type="number" id="termMonths" th:field="*{termMonths}" min="1" placeholder="360" />
-                    <div class="errors" th:if="${#fields.hasErrors('termMonths')}" th:errors="*{termMonths}"></div>
-                </div>
-
-                <fieldset style="margin: 2rem 0; border: 1px solid #ddd; padding: 1rem; border-radius: 4px;">
-                    <legend style="font-weight: bold; color: #2c3e50;">Extra Payments</legend>
-                    <p style="margin-bottom: 1rem; color: #666;">Add extra payments to pay off your loan faster.</p>
-
-                    <div th:if="${loan.extraPayments != null and !#lists.isEmpty(loan.extraPayments)}" style="margin-bottom: 1rem;">
-                        <div th:each="ep : ${loan.extraPayments}" class="extra-payment-row">
-                            <span>Month <strong th:text="${ep.monthNumber}">1</strong></span>
-                            <span>$<span th:text="${#numbers.formatDecimal(ep.amount, 1, 2)}">0.00</span></span>
-                            <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                <input type="checkbox" th:checked="${ep.enabled}" th:disabled="${loan.id == null}" />
-                                Enabled
-                            </label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                    <div class="form-group">
+                        <label for="annualInterestRate">Annual Interest Rate</label>
+                        <div class="input-group">
+                            <input type="number" id="annualInterestRate" th:field="*{annualInterestRate}" class="calc-rate" step="0.01" min="0" placeholder="6.5" required />
+                            <span class="input-suffix">%</span>
                         </div>
+                        <div class="validation-hint hint-rate">Annual percentage rate (APR)</div>
+                        <div class="errors" th:if="${#fields.hasErrors('annualInterestRate')}" th:errors="*{annualInterestRate}"></div>
                     </div>
 
-                    <div class="form-inline">
-                        <div class="form-group">
-                            <label>Month</label>
-                            <input name="extraPaymentMonth" type="number" min="1" placeholder="e.g., 12" />
+                    <div class="form-group">
+                        <label for="termMonths">Loan Term</label>
+                        <div class="input-group">
+                            <input type="number" id="termMonths" th:field="*{termMonths}" class="calc-term" min="1" max="600" placeholder="60" required />
+                            <span class="input-suffix">Months</span>
                         </div>
-                        <div class="form-group">
-                            <label>Amount ($)</label>
-                            <input name="extraPaymentAmount" type="number" step="0.01" min="0" placeholder="1000" />
-                        </div>
-                        <button type="submit" class="btn btn-success">Add Payment</button>
+                        <div class="validation-hint hint-term">e.g., 60 months = 5 years</div>
+                        <div class="errors" th:if="${#fields.hasErrors('termMonths')}" th:errors="*{termMonths}"></div>
                     </div>
-                </fieldset>
+                </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Update</button>
+                    <button type="submit" class="btn btn-primary">Update Loan</button>
                     <a th:href="@{/loans/{id}(id=${loan.id})}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>
 
+        <!-- Form for New Loan -->
         <div class="card" th:if="${loan.id == null}">
-            <form th:object="${loan}" th:action="@{/loans}" method="post">
+            <form th:object="${loan}" th:action="@{/loans}" method="post" class="loan-form" novalidate>
                 <div class="form-group">
-                    <label for="name">Loan Name</label>
-                    <input type="text" id="name" th:field="*{name}" placeholder="e.g., Mortgage 2025" />
+                    <label for="name">Loan / Vehicle Name</label>
+                    <input type="text" id="name" th:field="*{name}" placeholder="e.g., Toyota RAV4 2025, Dream Home" required />
+                    <div class="validation-hint">Give this loan a recognizable name</div>
                     <div class="errors" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
                 </div>
 
+                <!-- Car Cost & Down Payment Box -->
+                <div class="purchase-box" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <span style="font-weight: 700; color: #0f172a; font-size: 1rem;">
+                            🚗 Vehicle / Purchase Cost &amp; First Payment
+                        </span>
+                        <span style="font-size: 0.82rem; color: #64748b;">Auto-calculates financed principal</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="totalPrice">Total Cost / Car Price</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="totalPrice" th:field="*{totalPrice}" class="calc-total" step="0.01" min="0" placeholder="e.g., 35000" />
+                            </div>
+                            <div class="validation-hint hint-total">Total price before down payment</div>
+                            <div class="errors" th:if="${#fields.hasErrors('totalPrice')}" th:errors="*{totalPrice}"></div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="downPaymentPercent">First Installment (%)</label>
+                            <div class="input-group">
+                                <input type="number" id="downPaymentPercent" th:field="*{downPaymentPercent}" class="calc-pct" step="0.1" min="0" max="100" placeholder="e.g., 20" />
+                                <span class="input-suffix">%</span>
+                            </div>
+                            <div class="validation-hint hint-pct">Down payment percentage</div>
+                            <div class="errors" th:if="${#fields.hasErrors('downPaymentPercent')}" th:errors="*{downPaymentPercent}"></div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="downPayment">First Installment ($)</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="downPayment" th:field="*{downPayment}" class="calc-down" step="0.01" min="0" placeholder="e.g., 7000" />
+                            </div>
+                            <div class="validation-hint hint-down">Down payment in dollars</div>
+                            <div class="errors" th:if="${#fields.hasErrors('downPayment')}" th:errors="*{downPayment}"></div>
+                        </div>
+                    </div>
+
+                    <div class="financing-summary" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 6px; font-size: 0.9rem; color: #0369a1;">
+                        <span><strong>Car Cost:</strong> $<span class="summary-total">0.00</span></span> &bull; 
+                        <span><strong>Down Payment (<span class="summary-pct">0</span>%):</strong> $<span class="summary-down">0.00</span></span> &bull; 
+                        <span><strong>Financed Amount:</strong> $<span class="summary-principal">0.00</span></span>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label for="principal">Loan Amount ($)</label>
-                    <input type="number" id="principal" th:field="*{principal}" step="0.01" min="0" placeholder="300000" />
+                    <label for="principal">Financed Loan Amount (Principal)</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" id="principal" th:field="*{principal}" class="calc-principal" step="0.01" min="1" placeholder="e.g., 28000" required />
+                    </div>
+                    <div class="validation-hint hint-principal">Total amount financed to calculate amortized payments</div>
                     <div class="errors" th:if="${#fields.hasErrors('principal')}" th:errors="*{principal}"></div>
                 </div>
 
-                <div class="form-group">
-                    <label for="annualInterestRate">Annual Interest Rate (%)</label>
-                    <input type="number" id="annualInterestRate" th:field="*{annualInterestRate}" step="0.01" min="0" placeholder="6.5" />
-                    <div class="errors" th:if="${#fields.hasErrors('annualInterestRate')}" th:errors="*{annualInterestRate}"></div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                    <div class="form-group">
+                        <label for="annualInterestRate">Annual Interest Rate</label>
+                        <div class="input-group">
+                            <input type="number" id="annualInterestRate" th:field="*{annualInterestRate}" class="calc-rate" step="0.01" min="0" placeholder="6.5" required />
+                            <span class="input-suffix">%</span>
+                        </div>
+                        <div class="validation-hint hint-rate">Annual percentage rate (APR)</div>
+                        <div class="errors" th:if="${#fields.hasErrors('annualInterestRate')}" th:errors="*{annualInterestRate}"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="termMonths">Loan Term</label>
+                        <div class="input-group">
+                            <input type="number" id="termMonths" th:field="*{termMonths}" class="calc-term" min="1" max="600" placeholder="60" required />
+                            <span class="input-suffix">Months</span>
+                        </div>
+                        <div class="validation-hint hint-term">e.g., 60 months = 5 years</div>
+                        <div class="errors" th:if="${#fields.hasErrors('termMonths')}" th:errors="*{termMonths}"></div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="termMonths">Loan Term (months)</label>
-                    <input type="number" id="termMonths" th:field="*{termMonths}" min="1" placeholder="360" />
-                    <div class="errors" th:if="${#fields.hasErrors('termMonths')}" th:errors="*{termMonths}"></div>
-                </div>
+                <!-- Optional Initial Extra Payment Section -->
+                <fieldset style="margin: 2rem 0; border: 1px solid #cbd5e1; padding: 1.25rem; border-radius: 8px; background: #f8fafc;">
+                    <legend style="font-weight: 700; color: #0f172a; padding: 0 0.5rem;">⚡ Optional: Extra Payment Plan</legend>
+                    <p style="margin-bottom: 1rem; color: #64748b; font-size: 0.9rem;">
+                        Accelerate your payoff right from the start by setting up an extra payment (recurring or one-time).
+                    </p>
 
-                <fieldset style="margin: 2rem 0; border: 1px solid #ddd; padding: 1rem; border-radius: 4px;">
-                    <legend style="font-weight: bold; color: #2c3e50;">Extra Payments</legend>
-                    <p style="margin-bottom: 1rem; color: #666;">Add extra payments to pay off your loan faster.</p>
-
-                    <div class="form-inline">
-                        <div class="form-group">
-                            <label>Month</label>
-                            <input name="extraPaymentMonth" type="number" min="1" placeholder="e.g., 12" />
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="extraPaymentRecurrence">Recurrence</label>
+                            <select id="extraPaymentRecurrence" name="extraPaymentRecurrence">
+                                <option value="ONE_TIME">One-time</option>
+                                <option value="MONTHLY" selected>Monthly Recurring</option>
+                                <option value="ANNUALLY">Annually Recurring</option>
+                            </select>
                         </div>
-                        <div class="form-group">
-                            <label>Amount ($)</label>
-                            <input name="extraPaymentAmount" type="number" step="0.01" min="0" placeholder="1000" />
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="extraPaymentMonth">Starting Month</label>
+                            <div class="input-group">
+                                <span class="input-prefix">Mo</span>
+                                <input name="extraPaymentMonth" id="extraPaymentMonth" type="number" min="1" placeholder="e.g., 1" value="1" />
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-success">Add Payment</button>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="extraPaymentAmount">Extra Amount</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input name="extraPaymentAmount" id="extraPaymentAmount" type="number" step="0.01" min="0" placeholder="e.g., 100" />
+                            </div>
+                        </div>
                     </div>
                 </fieldset>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Create</button>
+                    <button type="submit" class="btn btn-primary">Create Loan &amp; View Schedule</button>
                     <a th:href="@{/loans}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>
     </div>
+
+    <script>
+        document.querySelectorAll('.loan-form').forEach(form => {
+            const totalInput = form.querySelector('.calc-total');
+            const pctInput = form.querySelector('.calc-pct');
+            const downInput = form.querySelector('.calc-down');
+            const principalInput = form.querySelector('.calc-principal');
+            const rateInput = form.querySelector('.calc-rate');
+            const termInput = form.querySelector('.calc-term');
+
+            const hintTotal = form.querySelector('.hint-total');
+            const hintPct = form.querySelector('.hint-pct');
+            const hintDown = form.querySelector('.hint-down');
+            const hintPrincipal = form.querySelector('.hint-principal');
+            const hintRate = form.querySelector('.hint-rate');
+            const hintTerm = form.querySelector('.hint-term');
+
+            const summaryBox = form.querySelector('.financing-summary');
+            const summaryTotal = form.querySelector('.summary-total');
+            const summaryPct = form.querySelector('.summary-pct');
+            const summaryDown = form.querySelector('.summary-down');
+            const summaryPrincipal = form.querySelector('.summary-principal');
+
+            function updateSummaryAndHints() {
+                const total = parseFloat(totalInput.value) || 0;
+                const down = parseFloat(downInput.value) || 0;
+                const pct = parseFloat(pctInput.value) || 0;
+                const principal = parseFloat(principalInput.value) || 0;
+                const rate = parseFloat(rateInput.value) || 0;
+                const term = parseInt(termInput.value) || 0;
+
+                // Validation checks
+                if (total > 0 && down > total) {
+                    hintDown.textContent = '⚠️ Down payment exceeds car price!';
+                    hintDown.className = 'validation-hint error';
+                    downInput.classList.add('is-invalid');
+                } else {
+                    hintDown.textContent = down > 0 ? '$' + down.toLocaleString('en-US', {minimumFractionDigits: 2}) : 'Down payment in dollars';
+                    hintDown.className = 'validation-hint';
+                    downInput.classList.remove('is-invalid');
+                }
+
+                if (pct > 100) {
+                    hintPct.textContent = '⚠️ Percentage cannot exceed 100%';
+                    hintPct.className = 'validation-hint error';
+                    pctInput.classList.add('is-invalid');
+                } else {
+                    hintPct.textContent = pct > 0 ? pct.toFixed(1) + '% of car cost' : 'Down payment percentage';
+                    hintPct.className = 'validation-hint';
+                    pctInput.classList.remove('is-invalid');
+                }
+
+                if (total > 0) {
+                    hintTotal.textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+                }
+
+                if (principal > 0) {
+                    hintPrincipal.textContent = 'Financed: $' + principal.toLocaleString('en-US', {minimumFractionDigits: 2});
+                }
+
+                if (term > 0) {
+                    const years = (term / 12).toFixed(1);
+                    hintTerm.textContent = term + ' months (~' + years + ' years)';
+                }
+
+                if (rate > 25) {
+                    hintRate.textContent = 'Notice: high interest rate (' + rate + '%)';
+                    hintRate.className = 'validation-hint error';
+                } else if (rate > 0) {
+                    hintRate.textContent = rate + '% APR';
+                    hintRate.className = 'validation-hint';
+                }
+
+                if (total > 0 || down > 0 || pct > 0) {
+                    if (summaryBox) summaryBox.style.display = 'block';
+                    if (summaryTotal) summaryTotal.textContent = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    if (summaryPct) summaryPct.textContent = pct.toFixed(1);
+                    if (summaryDown) summaryDown.textContent = down.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    if (summaryPrincipal) summaryPrincipal.textContent = principal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                } else {
+                    if (summaryBox) summaryBox.style.display = 'none';
+                }
+            }
+
+            totalInput.addEventListener('input', () => {
+                const total = parseFloat(totalInput.value);
+                if (isNaN(total) || total <= 0) {
+                    updateSummaryAndHints();
+                    return;
+                }
+                const pct = parseFloat(pctInput.value);
+                const down = parseFloat(downInput.value);
+
+                if (!isNaN(pct) && pct >= 0) {
+                    const calculatedDown = (total * pct) / 100;
+                    downInput.value = calculatedDown.toFixed(2);
+                    principalInput.value = Math.max(0, total - calculatedDown).toFixed(2);
+                } else if (!isNaN(down) && down >= 0) {
+                    pctInput.value = ((down / total) * 100).toFixed(2);
+                    principalInput.value = Math.max(0, total - down).toFixed(2);
+                } else {
+                    principalInput.value = total.toFixed(2);
+                }
+                updateSummaryAndHints();
+            });
+
+            pctInput.addEventListener('input', () => {
+                const total = parseFloat(totalInput.value);
+                const pct = parseFloat(pctInput.value);
+                if (!isNaN(total) && total > 0 && !isNaN(pct) && pct >= 0) {
+                    const calculatedDown = (total * pct) / 100;
+                    downInput.value = calculatedDown.toFixed(2);
+                    principalInput.value = Math.max(0, total - calculatedDown).toFixed(2);
+                }
+                updateSummaryAndHints();
+            });
+
+            downInput.addEventListener('input', () => {
+                const total = parseFloat(totalInput.value);
+                const down = parseFloat(downInput.value);
+                if (!isNaN(total) && total > 0 && !isNaN(down) && down >= 0) {
+                    pctInput.value = ((down / total) * 100).toFixed(2);
+                    principalInput.value = Math.max(0, total - down).toFixed(2);
+                }
+                updateSummaryAndHints();
+            });
+
+            principalInput.addEventListener('input', () => {
+                const total = parseFloat(totalInput.value);
+                const principal = parseFloat(principalInput.value);
+                if (!isNaN(total) && total > 0 && !isNaN(principal) && principal >= 0) {
+                    const down = Math.max(0, total - principal);
+                    downInput.value = down.toFixed(2);
+                    pctInput.value = ((down / total) * 100).toFixed(2);
+                }
+                updateSummaryAndHints();
+            });
+
+            rateInput.addEventListener('input', updateSummaryAndHints);
+            termInput.addEventListener('input', updateSummaryAndHints);
+
+            updateSummaryAndHints();
+        });
+    </script>
 </body>
 </html>

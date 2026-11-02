@@ -7,7 +7,7 @@
 </head>
 <body>
     <nav class="navbar">
-        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <h1 style="margin: 0;"><a th:href="@{/}" style="color: white; text-decoration: none;">Amortization Calculator</a></h1>
         <a th:href="@{/loans}">My Loans</a>
         <a th:href="@{/loans/new}">New Loan</a>
         <a th:href="@{/loans/compare}">Compare</a>
@@ -22,13 +22,25 @@
             <div th:each="summary, iter : ${summaries}" class="compare-card">
                 <h3 th:text="${summary.name}">Loan Name</h3>
 
+                <div th:if="${summary.totalPrice != null && summary.totalPrice > 0}" class="stat-row">
+                    <span>Total Cost / Car Price</span>
+                    <span th:text="'$' + ${#numbers.formatDecimal(summary.totalPrice, 1, 2)}">$0.00</span>
+                </div>
+                <div th:if="${summary.downPayment != null && summary.downPayment > 0}" class="stat-row">
+                    <span>Down Payment</span>
+                    <span th:text="'$' + ${#numbers.formatDecimal(summary.downPayment, 1, 2)}">$0.00</span>
+                </div>
+                <div class="stat-row">
+                    <span>Financed Principal</span>
+                    <span th:text="'$' + ${#numbers.formatDecimal(summary.principal, 1, 2)}">$0.00</span>
+                </div>
                 <div class="stat-row">
                     <span>Monthly Payment</span>
-                    <span th:text="${#numbers.formatDecimal(summary.monthlyPayment, 1, 2)}">0.00</span>
+                    <span th:text="'$' + ${#numbers.formatDecimal(summary.monthlyPayment, 1, 2)}">$0.00</span>
                 </div>
                 <div class="stat-row">
                     <span>Total Interest</span>
-                    <span th:text="${#numbers.formatDecimal(summary.totalInterest, 1, 2)}">0.00</span>
+                    <span th:text="'$' + ${#numbers.formatDecimal(summary.totalInterest, 1, 2)}">$0.00</span>
                 </div>
                 <div class="stat-row">
                     <span>Payoff Time</span>

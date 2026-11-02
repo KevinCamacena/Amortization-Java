@@ -2,8 +2,10 @@ package com.example.amortizacion.controller;
 
 import com.example.amortizacion.dto.AmortizationRow;
 import com.example.amortizacion.dto.ChartPoint;
+import com.example.amortizacion.dto.PayoffComparison;
 import com.example.amortizacion.entity.ExtraPayment;
 import com.example.amortizacion.entity.Loan;
+import com.example.amortizacion.entity.RecurrenceType;
 import com.example.amortizacion.service.AmortizationService;
 import com.example.amortizacion.service.LoanService;
 import jakarta.validation.Valid;
@@ -14,8 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Controller
 @RequestMapping("/loans")
@@ -40,6 +40,7 @@ public class LoanViewController {
     public String newForm(Model model) {
         model.addAttribute("loan", new Loan());
         model.addAttribute("extraPayment", new ExtraPayment());
+        model.addAttribute("recurrenceTypes", RecurrenceType.values());
         return "loans/form";
     }
 
@@ -48,17 +49,28 @@ public class LoanViewController {
                          BindingResult result,
                          @RequestParam(value = "extraPaymentMonth", required = false) Integer month,
                          @RequestParam(value = "extraPaymentAmount", required = false) Double amount,
-                         RedirectAttributes redirectAttrs) {
+                         @RequestParam(value = "extraPaymentRecurrence", required = false, defaultValue = "ONE_TIME") RecurrenceType recurrence,
+                         RedirectAttributes redirectAttrs,
+                         Model model) {
+        loan.syncFinancingFields();
         if (result.hasErrors()) {
-            return "loans/form";
+            boolean onlyPrincipalNullError = result.getErrorCount() == 1 &&
+                    result.hasFieldErrors("principal") &&
+                    loan.getPrincipal() != null &&
+                    loan.getPrincipal() > 0;
+            if (!onlyPrincipalNullError) {
+                model.addAttribute("recurrenceTypes", RecurrenceType.values());
+                return "loans/form";
+            }
         }
 
         loanService.create(loan);
 
-        if (month != null && amount != null && month > 0) {
+        if (month != null && amount != null && month > 0 && amount > 0) {
             ExtraPayment extraPayment = new ExtraPayment();
             extraPayment.setMonthNumber(month);
             extraPayment.setAmount(amount);
+            extraPayment.setRecurrenceType(recurrence != null ? recurrence : RecurrenceType.ONE_TIME);
             extraPayment.setEnabled(true);
             loanService.addExtraPayment(loan.getId(), extraPayment);
         }
@@ -71,6 +83,7 @@ public class LoanViewController {
         Loan loan = loanService.findByIdOrThrow(id);
         model.addAttribute("loan", loan);
         model.addAttribute("extraPayment", new ExtraPayment());
+        model.addAttribute("recurrenceTypes", RecurrenceType.values());
         return "loans/form";
     }
 
@@ -78,9 +91,18 @@ public class LoanViewController {
     public String update(@PathVariable Long id,
                          @Valid @ModelAttribute Loan loan,
                          BindingResult result,
-                         RedirectAttributes redirectAttrs) {
+                         RedirectAttributes redirectAttrs,
+                         Model model) {
+        loan.syncFinancingFields();
         if (result.hasErrors()) {
-            return "loans/form";
+            boolean onlyPrincipalNullError = result.getErrorCount() == 1 &&
+                    result.hasFieldErrors("principal") &&
+                    loan.getPrincipal() != null &&
+                    loan.getPrincipal() > 0;
+            if (!onlyPrincipalNullError) {
+                model.addAttribute("recurrenceTypes", RecurrenceType.values());
+                return "loans/form";
+            }
         }
 
         loanService.update(id, loan);
@@ -96,15 +118,19 @@ public class LoanViewController {
     @PostMapping("/{id}/extra-payment")
     public String addExtraPayment(@PathVariable Long id,
                                   @RequestParam("monthNumber") Integer monthNumber,
+                                  @RequestParam(value = "endMonth", required = false) Integer endMonth,
                                   @RequestParam("amount") Double amount,
+                                  @RequestParam(value = "recurrenceType", defaultValue = "ONE_TIME") RecurrenceType recurrenceType,
                                   RedirectAttributes redirectAttrs) {
-        if (monthNumber != null && amount != null && monthNumber > 0) {
+        if (monthNumber != null && amount != null && monthNumber > 0 && amount > 0) {
             ExtraPayment extraPayment = new ExtraPayment();
             extraPayment.setMonthNumber(monthNumber);
+            extraPayment.setEndMonth(endMonth != null && endMonth >= monthNumber ? endMonth : null);
             extraPayment.setAmount(amount);
+            extraPayment.setRecurrenceType(recurrenceType != null ? recurrenceType : RecurrenceType.ONE_TIME);
             extraPayment.setEnabled(true);
             loanService.addExtraPayment(id, extraPayment);
-            redirectAttrs.addFlashAttribute("success", "Extra payment added successfully");
+            redirectAttrs.addFlashAttribute("success", "Extra payment added successfully (" + extraPayment.getFormattedSchedule() + ")");
         }
         return "redirect:/loans/" + id;
     }
@@ -116,11 +142,18 @@ public class LoanViewController {
         Loan loan = loanService.findByIdOrThrow(id);
         List<AmortizationRow> schedule = amortizationService.generateSchedule(loan, includeExtra);
         List<ChartPoint> chartData = amortizationService.generateChartData(loan, includeExtra);
+        List<ChartPoint> standardChartData = amortizationService.generateChartData(loan, false);
+        List<ChartPoint> acceleratedChartData = amortizationService.generateChartData(loan, true);
+        PayoffComparison payoffComparison = amortizationService.calculatePayoffComparison(loan);
 
         model.addAttribute("loan", loan);
         model.addAttribute("schedule", schedule);
         model.addAttribute("chartData", chartData);
+        model.addAttribute("standardChartData", standardChartData);
+        model.addAttribute("acceleratedChartData", acceleratedChartData);
+        model.addAttribute("payoffComparison", payoffComparison);
         model.addAttribute("includeExtra", includeExtra);
+        model.addAttribute("recurrenceTypes", RecurrenceType.values());
         return "loans/detail";
     }
 
