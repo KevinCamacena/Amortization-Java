@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${loan.name} + ' - Amortization'">Loan Detail</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <a th:href="@{/loans}">My Loans</a>
+        <a th:href="@{/loans/new}">New Loan</a>
+        <a th:href="@{/loans/compare}">Compare</a>
+    </nav>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1><span th:text="${loan.name}">Loan</span></h1>
+            <div>
+                <a th:href="@{/loans}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">&larr; Back</a>
+                <a th:href="@{/loans/{id}/edit(id=${loan.id})}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Edit</a>
+                <a th:href="@{/loans/{id}/export/csv(id=${loan.id}, includeExtra=${includeExtra})}" class="btn btn-success" style="padding: 0.5rem 1rem;">Export CSV</a>
+                <a th:href="@{/loans/{id}/export/pdf(id=${loan.id}, includeExtra=${includeExtra})}" class="btn btn-success" style="padding: 0.5rem 1rem;">Export PDF</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                <div>
+                    <div style="color: #666; font-size: 0.85rem;">Loan Amount</div>
+                    <div style="font-size: 1.5rem; font-weight: bold;" th:text="${#numbers.formatDecimal(loan.principal, 1, 2)}">0.00</div>
+                </div>
+                <div>
+                    <div style="color: #666; font-size: 0.85rem;">Interest Rate</div>
+                    <div style="font-size: 1.5rem; font-weight: bold;" th:text="${loan.annualInterestRate} + '%'">0%</div>
+                </div>
+                <div>
+                    <div style="color: #666; font-size: 0.85rem;">Term</div>
+                    <div style="font-size: 1.5rem; font-weight: bold;" th:text="${loan.termMonths} + ' months'">0</div>
+                </div>
+                <div>
+                    <div style="color: #666; font-size: 0.85rem;">Monthly Payment</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #3498db;" th:text="${#numbers.formatDecimal(loan.monthlyPayment, 1, 2)}">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <form th:action="@{/loans/{id}(id=${loan.id})}" method="get" style="margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="includeExtra" th:checked="${includeExtra}" onchange="this.closest('form').submit()" />
+                    Include extra payments in schedule
+                </label>
+            </form>
+
+            <div id="extraPaymentsSection" th:if="${!#lists.isEmpty(loan.extraPayments)}">
+                <h3>Extra Payments</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="ep : ${loan.extraPayments}">
+                            <td th:text="${ep.monthNumber}">1</td>
+                            <td th:text="${#numbers.formatDecimal(ep.amount, 1, 2)}">0.00</td>
+                            <td>
+                                <span th:text="${ep.enabled ? 'Enabled' : 'Disabled'}"
+                                      th:style="${ep.enabled ? 'color: green' : 'color: red'}">Enabled</span>
+                            </td>
+                            <td>
+                                <form th:action="@{/loans/{id}/toggle-extra-payment(id=${loan.id})}" method="post" style="display: inline;">
+                                    <input type="hidden" name="extraPaymentId" th:value="${ep.id}" />
+                                    <input type="hidden" name="enabled" th:value="${!ep.enabled}" />
+                                    <button type="submit" class="btn" style="padding: 0.25rem 0.5rem;"
+                                            th:text="${ep.enabled ? 'Disable' : 'Enable'}">Toggle</button>
+                                </form>
+                                <form th:action="@{/loans/{id}/remove-extra-payment(id=${loan.id})}" method="post" style="display: inline;"
+                                      onsubmit="return confirm('Remove this extra payment?');">
+                                    <input type="hidden" name="extraPaymentId" th:value="${ep.id}" />
+                                    <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem;">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin: 1rem 0;">
+                <a href="#" onclick="addExtraPayment(); return false;" class="btn btn-primary">+ Add Extra Payment</a>
+            </div>
+
+            <div id="addExtraPaymentForm" style="display: none;" class="form-inline">
+                <form th:action="@{/loans/{id}/extra-payment(id=${loan.id})}" method="post">
+                    <div class="form-group">
+                        <label>Month</label>
+                        <input name="monthNumber" type="number" min="1" placeholder="e.g., 12" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Amount ($)</label>
+                        <input name="amount" type="number" step="0.01" min="0" placeholder="1000" required />
+                    </div>
+                    <button type="submit" class="btn btn-success">Add</button>
+                    <button type="button" class="btn btn-secondary" onclick="toggleExtraPaymentForm()">Cancel</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Amortization Schedule</h2>
+            <div class="chart-container">
+                <canvas id="amortizationChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Schedule Details</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Payment</th>
+                            <th>Principal</th>
+                            <th>Interest</th>
+                            <th>Total Principal</th>
+                            <th>Total Interest</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="row : ${schedule}">
+                            <td th:text="${row.month}">1</td>
+                            <td th:text="${#numbers.formatDecimal(row.payment, 1, 2)}">0.00</td>
+                            <td th:text="${#numbers.formatDecimal(row.principalPaid, 1, 2)}">0.00</td>
+                            <td th:text="${#numbers.formatDecimal(row.interestPaid, 1, 2)}">0.00</td>
+                            <td th:text="${#numbers.formatDecimal(row.totalPrincipalPaid, 1, 2)}">0.00</td>
+                            <td th:text="${#numbers.formatDecimal(row.totalInterestPaid, 1, 2)}">0.00</td>
+                            <td th:text="${#numbers.formatDecimal(row.remainingBalance, 1, 2)}">0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <script th:inline="javascript">
+            const chartData = /*[[${chartData}]]*/ [];
+            const labels = chartData.map(d => d.month);
+            const totalPrincipal = chartData.map(d => d.principalPaid);
+            const totalInterest = chartData.map(d => d.interestPaid);
+            const balance = chartData.map(d => d.remainingBalance);
+
+            const ctx = document.getElementById('amortizationChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Principal Paid',
+                            data: totalPrincipal,
+                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            borderWidth: 1,
+                            type: 'line',
+                            fill: false,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Total Interest Paid',
+                            data: totalInterest,
+                            backgroundColor: 'rgba(231, 76, 60, 0.7)',
+                            borderColor: 'rgba(231, 76, 60, 1)',
+                            borderWidth: 1,
+                            type: 'line',
+                            fill: false,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Remaining Balance',
+                            data: balance,
+                            backgroundColor: 'rgba(46, 204, 113, 0.3)',
+                            borderColor: 'rgba(46, 204, 113, 1)',
+                            borderWidth: 2,
+                            type: 'line',
+                            fill: true,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+
+            function toggleExtraPaymentForm() {
+                const form = document.getElementById('addExtraPaymentForm');
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            }
+        </script>
+    </div>
+</body>
+</html>

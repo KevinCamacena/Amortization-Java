@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${loan.id != null ? 'Edit Loan' : 'New Loan'}">Loan Form</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+</head>
+<body>
+    <nav class="navbar">
+        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <a th:href="@{/loans}">My Loans</a>
+        <a th:href="@{/loans/new}">New Loan</a>
+        <a th:href="@{/loans/compare}">Compare</a>
+    </nav>
+    <div class="container">
+        <h1 th:text="${loan.id != null ? 'Edit Loan' : 'New Loan'}">Loan Form</h1>
+
+        <div class="card" th:if="${loan.id != null}">
+            <form th:object="${loan}" th:action="@{/loans/{id}(id=${loan.id})}" method="post">
+                <div class="form-group">
+                    <label for="name">Loan Name</label>
+                    <input type="text" id="name" th:field="*{name}" placeholder="e.g., Mortgage 2025" />
+                    <div class="errors" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="principal">Loan Amount ($)</label>
+                    <input type="number" id="principal" th:field="*{principal}" step="0.01" min="0" placeholder="300000" />
+                    <div class="errors" th:if="${#fields.hasErrors('principal')}" th:errors="*{principal}"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="annualInterestRate">Annual Interest Rate (%)</label>
+                    <input type="number" id="annualInterestRate" th:field="*{annualInterestRate}" step="0.01" min="0" placeholder="6.5" />
+                    <div class="errors" th:if="${#fields.hasErrors('annualInterestRate')}" th:errors="*{annualInterestRate}"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="termMonths">Loan Term (months)</label>
+                    <input type="number" id="termMonths" th:field="*{termMonths}" min="1" placeholder="360" />
+                    <div class="errors" th:if="${#fields.hasErrors('termMonths')}" th:errors="*{termMonths}"></div>
+                </div>
+
+                <fieldset style="margin: 2rem 0; border: 1px solid #ddd; padding: 1rem; border-radius: 4px;">
+                    <legend style="font-weight: bold; color: #2c3e50;">Extra Payments</legend>
+                    <p style="margin-bottom: 1rem; color: #666;">Add extra payments to pay off your loan faster.</p>
+
+                    <div th:if="${loan.extraPayments != null and !#lists.isEmpty(loan.extraPayments)}" style="margin-bottom: 1rem;">
+                        <div th:each="ep : ${loan.extraPayments}" class="extra-payment-row">
+                            <span>Month <strong th:text="${ep.monthNumber}">1</strong></span>
+                            <span>$<span th:text="${#numbers.formatDecimal(ep.amount, 1, 2)}">0.00</span></span>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox" th:checked="${ep.enabled}" th:disabled="${loan.id == null}" />
+                                Enabled
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-inline">
+                        <div class="form-group">
+                            <label>Month</label>
+                            <input name="extraPaymentMonth" type="number" min="1" placeholder="e.g., 12" />
+                        </div>
+                        <div class="form-group">
+                            <label>Amount ($)</label>
+                            <input name="extraPaymentAmount" type="number" step="0.01" min="0" placeholder="1000" />
+                        </div>
+                        <button type="submit" class="btn btn-success">Add Payment</button>
+                    </div>
+                </fieldset>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <a th:href="@{/loans/{id}(id=${loan.id})}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="card" th:if="${loan.id == null}">
+            <form th:object="${loan}" th:action="@{/loans}" method="post">
+                <div class="form-group">
+                    <label for="name">Loan Name</label>
+                    <input type="text" id="name" th:field="*{name}" placeholder="e.g., Mortgage 2025" />
+                    <div class="errors" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="principal">Loan Amount ($)</label>
+                    <input type="number" id="principal" th:field="*{principal}" step="0.01" min="0" placeholder="300000" />
+                    <div class="errors" th:if="${#fields.hasErrors('principal')}" th:errors="*{principal}"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="annualInterestRate">Annual Interest Rate (%)</label>
+                    <input type="number" id="annualInterestRate" th:field="*{annualInterestRate}" step="0.01" min="0" placeholder="6.5" />
+                    <div class="errors" th:if="${#fields.hasErrors('annualInterestRate')}" th:errors="*{annualInterestRate}"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="termMonths">Loan Term (months)</label>
+                    <input type="number" id="termMonths" th:field="*{termMonths}" min="1" placeholder="360" />
+                    <div class="errors" th:if="${#fields.hasErrors('termMonths')}" th:errors="*{termMonths}"></div>
+                </div>
+
+                <fieldset style="margin: 2rem 0; border: 1px solid #ddd; padding: 1rem; border-radius: 4px;">
+                    <legend style="font-weight: bold; color: #2c3e50;">Extra Payments</legend>
+                    <p style="margin-bottom: 1rem; color: #666;">Add extra payments to pay off your loan faster.</p>
+
+                    <div class="form-inline">
+                        <div class="form-group">
+                            <label>Month</label>
+                            <input name="extraPaymentMonth" type="number" min="1" placeholder="e.g., 12" />
+                        </div>
+                        <div class="form-group">
+                            <label>Amount ($)</label>
+                            <input name="extraPaymentAmount" type="number" step="0.01" min="0" placeholder="1000" />
+                        </div>
+                        <button type="submit" class="btn btn-success">Add Payment</button>
+                    </div>
+                </fieldset>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create</button>
+                    <a th:href="@{/loans}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

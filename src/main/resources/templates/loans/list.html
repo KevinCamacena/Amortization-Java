@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>My Loans</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+</head>
+<body>
+    <nav class="navbar">
+        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <a th:href="@{/loans}">My Loans</a>
+        <a th:href="@{/loans/new}">New Loan</a>
+        <a th:href="@{/loans/compare}">Compare</a>
+    </nav>
+    <div class="container">
+        <h1>My Loans</h1>
+
+        <div style="margin-bottom: 2rem;">
+            <a th:href="@{/loans/new}" class="btn btn-primary">+ New Loan</a>
+        </div>
+
+        <div th:if="${!#lists.isEmpty(loans)}">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Principal</th>
+                        <th>Interest Rate</th>
+                        <th>Term</th>
+                        <th>Monthly Payment</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="loan : ${loans}">
+                        <td th:text="${loan.name}">Loan Name</td>
+                        <td th:text="${#numbers.formatDecimal(loan.principal, 1, 2)}">0.00</td>
+                        <td th:text="${loan.annualInterestRate} + '%'">0%</td>
+                        <td th:text="${loan.termMonths} + ' months'">0 months</td>
+                        <td th:text="${#numbers.formatDecimal(loan.monthlyPayment, 1, 2)}">0.00</td>
+                        <td>
+                            <a th:href="@{/loans/{id}(id=${loan.id})}" class="btn btn-primary" style="padding: 0.5rem 1rem;">View</a>
+                            <a th:href="@{/loans/{id}/edit(id=${loan.id})}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Edit</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${#lists.isEmpty(loans)}" class="card">
+            <p class="text-center">No loans yet. <a th:href="@{/loans/new}">Create your first loan</a></p>
+        </div>
+    </div>
+</body>
+</html>

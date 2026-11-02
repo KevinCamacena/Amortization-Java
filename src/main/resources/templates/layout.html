@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amortization Calculator</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+</head>
+<body>
+    <nav class="navbar">
+        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <a th:href="@{/loans}">My Loans</a>
+        <a th:href="@{/loans/new}">New Loan</a>
+        <a th:href="@{/loans/compare}">Compare</a>
+    </nav>
+    <div class="container">
+        <div th:if="${success}" class="flash-success" th:text="${success}"></div>
+        <div th:fragment="content">
+            <!-- Page content goes here -->
+        </div>
+    </div>
+</body>
+</html>

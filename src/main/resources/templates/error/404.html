@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Error</title></head>
+<body>
+    <nav class="navbar">
+        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <a th:href="@{/loans}">My Loans</a>
+        <a th:href="@{/loans/new}">New Loan</a>
+    </nav>
+    <div class="container">
+        <div class="card">
+            <h2>Oops! Something went wrong</h2>
+            <p th:text="${errorMessage}">An error occurred</p>
+            <a th:href="@{/loans}" class="btn btn-primary">Go Back</a>
+        </div>
+    </div>
+</body>
+</html>

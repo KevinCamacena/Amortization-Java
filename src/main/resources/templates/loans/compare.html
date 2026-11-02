@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Compare Loans</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <h1 style="color: white; margin: 0;">Amortization Calculator</h1>
+        <a th:href="@{/loans}">My Loans</a>
+        <a th:href="@{/loans/new}">New Loan</a>
+        <a th:href="@{/loans/compare}">Compare</a>
+    </nav>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Compare Loans</h1>
+            <a th:href="@{/loans}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">&larr; Back</a>
+        </div>
+
+        <div class="compare-cards">
+            <div th:each="summary, iter : ${summaries}" class="compare-card">
+                <h3 th:text="${summary.name}">Loan Name</h3>
+
+                <div class="stat-row">
+                    <span>Monthly Payment</span>
+                    <span th:text="${#numbers.formatDecimal(summary.monthlyPayment, 1, 2)}">0.00</span>
+                </div>
+                <div class="stat-row">
+                    <span>Total Interest</span>
+                    <span th:text="${#numbers.formatDecimal(summary.totalInterest, 1, 2)}">0.00</span>
+                </div>
+                <div class="stat-row">
+                    <span>Payoff Time</span>
+                    <span th:text="${summary.monthsToPayoff} + ' months'">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Total Cost</span>
+                    <span th:text="${#numbers.formatDecimal(summary.totalCost, 1, 2)}">0.00</span>
+                </div>
+
+                <div class="chart-container" style="height: 250px;">
+                    <canvas th:id="${'compareChart-' + iter.index}"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <script th:inline="javascript">
+            const summaries = /*[[${summaries}]]*/ [];
+            summaries.forEach((summary, index) => {
+                const ctx = document.getElementById('compareChart-' + index).getContext('2d');
+                const data = summary.chartData;
+                const labels = data.map(d => d.month);
+                const totalPrincipal = data.map(d => d.principalPaid);
+                const totalInterest = data.map(d => d.interestPaid);
+                const balance = data.map(d => d.remainingBalance);
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Total Principal Paid',
+                                data: totalPrincipal,
+                                backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                                type: 'line',
+                                fill: false,
+                                tension: 0.1
+                            },
+                            {
+                                label: 'Total Interest Paid',
+                                data: totalInterest,
+                                backgroundColor: 'rgba(231, 76, 60, 0.7)',
+                                type: 'line',
+                                fill: false,
+                                tension: 0.1
+                            },
+                            {
+                                label: 'Remaining Balance',
+                                data: balance,
+                                backgroundColor: 'rgba(46, 204, 113, 0.3)',
+                                borderColor: 'rgba(46, 204, 113, 1)',
+                                borderWidth: 2,
+                                type: 'line',
+                                fill: true,
+                                tension: 0.1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>
