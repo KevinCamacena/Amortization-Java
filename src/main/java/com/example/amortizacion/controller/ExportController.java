@@ -55,17 +55,31 @@ public class ExportController {
     }
 
     @GetMapping("/loans/compare")
-    public String compare(@RequestParam("loanIds") List<Long> loanIds, Model model) {
-        List<Loan> loans = loanIds.stream()
-            .map(id -> loanService.findByIdOrThrow(id))
-            .collect(Collectors.toList());
+    public String compare(@RequestParam(value = "loanIds", required = false) List<Long> loanIds, Model model) {
+        List<Loan> allLoans = loanService.findAll();
+        model.addAttribute("allLoans", allLoans);
 
-        List<AmortizationService.LoanCompareSummary> summaries = loans.stream()
+        List<Loan> selectedLoans;
+        if (loanIds != null && !loanIds.isEmpty()) {
+            selectedLoans = loanIds.stream()
+                .filter(id -> allLoans.stream().anyMatch(l -> l.getId().equals(id)))
+                .map(loanService::findByIdOrThrow)
+                .collect(Collectors.toList());
+        } else if (allLoans.size() >= 2) {
+            selectedLoans = allLoans.stream().limit(3).collect(Collectors.toList());
+        } else {
+            selectedLoans = allLoans;
+        }
+
+        List<AmortizationService.LoanCompareSummary> summaries = selectedLoans.stream()
             .map(loan -> amortizationService.generateCompareSummary(loan, true))
             .collect(Collectors.toList());
 
-        model.addAttribute("loans", loans);
+        List<Long> selectedIds = selectedLoans.stream().map(Loan::getId).collect(Collectors.toList());
+
+        model.addAttribute("loans", selectedLoans);
         model.addAttribute("summaries", summaries);
+        model.addAttribute("selectedIds", selectedIds);
         return "loans/compare";
     }
 }

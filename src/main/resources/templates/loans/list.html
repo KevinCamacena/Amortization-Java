@@ -12,60 +12,113 @@
         <a th:href="@{/loans/compare}">Compare</a>
     </nav>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-            <h1>My Loans</h1>
-            <a th:href="@{/loans/new}" class="btn btn-primary">+ New Loan</a>
-        </div>
+        <div th:if="${success}" class="flash-success" th:text="${success}"></div>
 
-        <div th:if="${!#lists.isEmpty(loans)}" class="card" style="padding: 0; overflow: hidden;">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Total Cost</th>
-                            <th>Down Payment</th>
-                            <th>Financed Amount</th>
-                            <th>Interest Rate</th>
-                            <th>Term</th>
-                            <th>Monthly Payment</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="loan : ${loans}">
-                            <td style="font-weight: 600;">
-                                <a th:href="@{/loans/{id}(id=${loan.id})}" th:text="${loan.name}" style="color: #2563eb; text-decoration: none;">Loan Name</a>
-                            </td>
-                            <td>
-                                <span th:if="${loan.totalPrice != null && loan.totalPrice > 0}" th:text="'$' + ${#numbers.formatDecimal(loan.totalPrice, 1, 2)}">$0.00</span>
-                                <span th:unless="${loan.totalPrice != null && loan.totalPrice > 0}" style="color: #94a3b8;">&mdash;</span>
-                            </td>
-                            <td>
-                                <span th:if="${loan.downPayment != null && loan.downPayment > 0}">
-                                    <span style="color: #16a34a; font-weight: 500;" th:text="'$' + ${#numbers.formatDecimal(loan.downPayment, 1, 2)}">$0.00</span>
-                                    <span th:if="${loan.downPaymentPercent != null}" style="color: #64748b; font-size: 0.82rem;" th:text="'(' + ${#numbers.formatDecimal(loan.downPaymentPercent, 1, 0)} + '%)'">(0%)</span>
-                                </span>
-                                <span th:unless="${loan.downPayment != null && loan.downPayment > 0}" style="color: #94a3b8;">&mdash;</span>
-                            </td>
-                            <td style="font-weight: 600;" th:text="'$' + ${#numbers.formatDecimal(loan.principal, 1, 2)}">$0.00</td>
-                            <td th:text="${loan.annualInterestRate} + '%'">0%</td>
-                            <td th:text="${loan.termMonths} + ' mo'">0 mo</td>
-                            <td style="font-weight: 600; color: #2563eb;" th:text="'$' + ${#numbers.formatDecimal(loan.monthlyPayment, 1, 2)}">$0.00</td>
-                            <td class="text-center" style="white-space: nowrap;">
-                                <a th:href="@{/loans/{id}(id=${loan.id})}" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;">View</a>
-                                <a th:href="@{/loans/{id}/edit(id=${loan.id})}" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;">Edit</a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <form id="compareForm" th:action="@{/loans/compare}" method="get">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <h1>My Loans</h1>
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <button type="submit" id="btnCompare" class="btn" style="background: #7c3aed; color: white; opacity: 0.6; cursor: not-allowed;" disabled>
+                        📊 Compare Selected (<span id="compareCount">0</span>)
+                    </button>
+                    <a th:if="${#lists.size(loans) >= 2}" th:href="@{/loans/compare}" class="btn btn-secondary">
+                        Compare All
+                    </a>
+                    <a th:href="@{/loans/new}" class="btn btn-primary">+ New Loan</a>
+                </div>
             </div>
-        </div>
+
+            <div th:if="${!#lists.isEmpty(loans)}" class="card" style="padding: 0; overflow: hidden;">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;">
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all to compare" />
+                                </th>
+                                <th>Name</th>
+                                <th>Total Cost</th>
+                                <th>Down Payment</th>
+                                <th>Financed Amount</th>
+                                <th>Interest Rate</th>
+                                <th>Term</th>
+                                <th>Monthly Payment</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="loan : ${loans}">
+                                <td style="text-align: center;">
+                                    <input type="checkbox" name="loanIds" th:value="${loan.id}" class="loan-checkbox" onchange="updateCompareState()" />
+                                </td>
+                                <td style="font-weight: 600;">
+                                    <a th:href="@{/loans/{id}(id=${loan.id})}" th:text="${loan.name}" style="color: #2563eb; text-decoration: none;">Loan Name</a>
+                                </td>
+                                <td>
+                                    <span th:if="${loan.totalPrice != null && loan.totalPrice > 0}" th:text="'$' + ${#numbers.formatDecimal(loan.totalPrice, 1, 2)}">$0.00</span>
+                                    <span th:unless="${loan.totalPrice != null && loan.totalPrice > 0}" style="color: #94a3b8;">&mdash;</span>
+                                </td>
+                                <td>
+                                    <span th:if="${loan.downPayment != null && loan.downPayment > 0}">
+                                        <span style="color: #16a34a; font-weight: 500;" th:text="'$' + ${#numbers.formatDecimal(loan.downPayment, 1, 2)}">$0.00</span>
+                                        <span th:if="${loan.downPaymentPercent != null}" style="color: #64748b; font-size: 0.82rem;" th:text="'(' + ${#numbers.formatDecimal(loan.downPaymentPercent, 1, 0)} + '%)'">(0%)</span>
+                                    </span>
+                                    <span th:unless="${loan.downPayment != null && loan.downPayment > 0}" style="color: #94a3b8;">&mdash;</span>
+                                </td>
+                                <td style="font-weight: 600;" th:text="'$' + ${#numbers.formatDecimal(loan.principal, 1, 2)}">$0.00</td>
+                                <td th:text="${loan.annualInterestRate} + '%'">0%</td>
+                                <td th:text="${loan.termMonths} + ' mo'">0 mo</td>
+                                <td style="font-weight: 600; color: #2563eb;" th:text="'$' + ${#numbers.formatDecimal(loan.monthlyPayment, 1, 2)}">$0.00</td>
+                                <td class="text-center" style="white-space: nowrap;">
+                                    <a th:href="@{/loans/{id}(id=${loan.id})}" class="btn btn-primary" style="padding: 0.35rem 0.65rem; font-size: 0.82rem;">View</a>
+                                    <a th:href="@{/loans/{id}/copy(id=${loan.id})}" class="btn" style="padding: 0.35rem 0.65rem; font-size: 0.82rem; background: #0284c7; color: white;" title="Duplicate & adjust down payment">Copy</a>
+                                    <a th:href="@{/loans/{id}/edit(id=${loan.id})}" class="btn btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.82rem;">Edit</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </form>
 
         <div th:if="${#lists.isEmpty(loans)}" class="card text-center" style="padding: 3rem 1.5rem;">
             <p style="font-size: 1.1rem; color: #64748b; margin-bottom: 1.25rem;">You haven't calculated any loans yet.</p>
             <a th:href="@{/loans/new}" class="btn btn-primary">Create Your First Loan</a>
         </div>
     </div>
+
+    <script>
+        function updateCompareState() {
+            const checkboxes = document.querySelectorAll('.loan-checkbox:checked');
+            const count = checkboxes.length;
+            const btn = document.getElementById('btnCompare');
+            const counterSpan = document.getElementById('compareCount');
+            if (counterSpan) counterSpan.textContent = count;
+
+            if (count >= 2) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'not-allowed';
+            }
+
+            const allCheckboxes = document.querySelectorAll('.loan-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            if (selectAll && allCheckboxes.length > 0) {
+                selectAll.checked = (count === allCheckboxes.length);
+            }
+        }
+
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('.loan-checkbox');
+            checkboxes.forEach(cb => cb.checked = master.checked);
+            updateCompareState();
+        }
+
+        document.addEventListener('DOMContentLoaded', updateCompareState);
+    </script>
 </body>
 </html>

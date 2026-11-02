@@ -35,11 +35,27 @@ A full-featured amortization and asset financing web application built with **Ja
 - **Savings Impact Banner**:
   - Highlight card displaying exact time saved (e.g. *14 Months Faster*) and total interest dollars saved.
 
-### 5. Exporting & Comparison
-- **CSV & PDF Exports**: Download complete amortization schedules formatted with PDFBox and OpenCSV.
-- **Side-by-Side Comparison**: Compare multiple loans side-by-side with payoff timelines and total cost metrics.
+### 5. Copy & Scenario Cloning
+- **One-Click "Copy" Action**: Available on both the loan list table and loan detail view.
+- **Scenario Testing**: Clones all loan parameters (purchase price, down payment, interest rate, term, and extra payment schedules) into the loan form with an intuitive guide banner, allowing you to instantly tweak down payments (e.g. from 20% to 30% or 40%) and save alternative scenarios.
 
-### 6. UI & UX Polish
+### 6. Side-by-Side Comparison Matrix & Trajectory Chart
+- **Loan Selection**: Checkboxes on the loans list to select 2 or more loans with a dynamic `Compare Selected (X)` action button, plus an interactive loan selector chip bar on the `/loans/compare` page.
+- **Combined Payoff Trajectory Chart**: Multi-line Chart.js graph overlaying the balance payoff trajectories of all compared scenarios on a single canvas.
+- **Detailed Comparison Matrix**: Side-by-side table comparing:
+  - Car / Total Cost ($)
+  - Down Payment ($ and %)
+  - Financed Principal ($)
+  - Interest Rate (APR %)
+  - Monthly Base Payment ($)
+  - Total Interest Paid ($)
+  - Payoff Time (Months)
+  - Total Loan Cost and Total Out-of-Pocket Cost
+
+### 7. Exporting
+- **CSV & PDF Exports**: Download complete amortization schedules formatted with PDFBox and OpenCSV.
+
+### 8. UI & UX Polish
 - **Formatted Input Groups**: Clear prefix and suffix badges (`$`, `%`, `Mo`) for currency and duration fields.
 - **Real-Time Client-Side Validation Hints**: Instant feedback on invalid inputs, high interest rates, down payment exceeding car cost, and human-readable term conversions (e.g. `60 months (~5.0 years)`).
 - **Responsive Table Layouts**: Mobile-friendly table containers with sticky headers and clean status badges.

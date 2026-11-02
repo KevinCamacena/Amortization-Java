@@ -1,137 +1,308 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Compare Loans</title>
+    <title>Compare Loans - Amortization Calculator</title>
     <link rel="stylesheet" th:href="@{/css/style.css}" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        .comparison-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .comparison-matrix th, .comparison-matrix td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .comparison-matrix th.row-header {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            width: 220px;
+            position: sticky;
+            left: 0;
+            z-index: 2;
+        }
+        .comparison-matrix th.loan-col-header {
+            background: #1e293b;
+            color: white;
+            font-size: 1.05rem;
+            min-width: 220px;
+            text-align: center;
+        }
+        .comparison-matrix td.loan-col-val {
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        .best-value-badge {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 9999px;
+            margin-top: 0.25rem;
+        }
+        .selector-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 9999px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            font-size: 0.85rem;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        .selector-chip:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .selector-chip input:checked + span {
+            font-weight: 600;
+            color: #1d4ed8;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <h1 style="margin: 0;"><a th:href="@{/}" style="color: white; text-decoration: none;">Amortization Calculator</a></h1>
         <a th:href="@{/loans}">My Loans</a>
         <a th:href="@{/loans/new}">New Loan</a>
-        <a th:href="@{/loans/compare}">Compare</a>
+        <a th:href="@{/loans/compare}" class="active">Compare</a>
     </nav>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h1>Compare Loans</h1>
-            <a th:href="@{/loans}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">&larr; Back</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <h1>Compare Loan Scenarios</h1>
+            <div style="display: flex; gap: 0.75rem;">
+                <a th:href="@{/loans}" class="btn btn-secondary">&larr; Back to Loans</a>
+                <a th:href="@{/loans/new}" class="btn btn-primary">+ New Loan</a>
+            </div>
         </div>
 
-        <div class="compare-cards">
-            <div th:each="summary, iter : ${summaries}" class="compare-card">
-                <h3 th:text="${summary.name}">Loan Name</h3>
+        <!-- Loan Selection Widget -->
+        <div class="card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;">
+            <form id="compareSelectForm" th:action="@{/loans/compare}" method="get">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <span style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">
+                        Select loans to compare (e.g. 20% vs 30% vs 40% down payment):
+                    </span>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">
+                        Update Comparison
+                    </button>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;">
+                    <label th:each="loan : ${allLoans}" class="selector-chip">
+                        <input type="checkbox" name="loanIds" th:value="${loan.id}"
+                               th:checked="${#lists.contains(selectedIds, loan.id)}"
+                               onchange="document.getElementById('compareSelectForm').submit()" />
+                        <span th:text="${loan.name}">Loan Name</span>
+                    </label>
+                </div>
+            </form>
+        </div>
 
-                <div th:if="${summary.totalPrice != null && summary.totalPrice > 0}" class="stat-row">
-                    <span>Total Cost / Car Price</span>
-                    <span th:text="'$' + ${#numbers.formatDecimal(summary.totalPrice, 1, 2)}">$0.00</span>
+        <!-- Empty state when fewer than 2 loans are selected -->
+        <div th:if="${#lists.size(summaries) < 2}" class="card text-center" style="padding: 3rem 1.5rem;">
+            <p style="font-size: 1.2rem; color: #475569; margin-bottom: 1rem;">
+                Please select at least <strong>two loans</strong> to see side-by-side comparison metrics.
+            </p>
+            <p style="color: #64748b; margin-bottom: 1.5rem;">
+                Tip: On the <a th:href="@{/loans}">My Loans</a> page, use the <strong>Copy</strong> action to duplicate an existing loan and quickly change the down payment to 30% or 40%!
+            </p>
+            <a th:href="@{/loans}" class="btn btn-primary">Go to My Loans</a>
+        </div>
+
+        <!-- Comparison Content when 2+ loans are selected -->
+        <div th:if="${#lists.size(summaries) >= 2}">
+            <!-- Combined Multi-Loan Balance Trajectory Chart -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">Payoff Trajectory Comparison</h2>
+                    <span style="font-size: 0.85rem; color: #64748b;">Remaining balance curves over time</span>
                 </div>
-                <div th:if="${summary.downPayment != null && summary.downPayment > 0}" class="stat-row">
-                    <span>Down Payment</span>
-                    <span th:text="'$' + ${#numbers.formatDecimal(summary.downPayment, 1, 2)}">$0.00</span>
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="multiLoanChart"></canvas>
                 </div>
-                <div class="stat-row">
-                    <span>Financed Principal</span>
-                    <span th:text="'$' + ${#numbers.formatDecimal(summary.principal, 1, 2)}">$0.00</span>
-                </div>
-                <div class="stat-row">
-                    <span>Monthly Payment</span>
-                    <span th:text="'$' + ${#numbers.formatDecimal(summary.monthlyPayment, 1, 2)}">$0.00</span>
-                </div>
-                <div class="stat-row">
-                    <span>Total Interest</span>
-                    <span th:text="'$' + ${#numbers.formatDecimal(summary.totalInterest, 1, 2)}">$0.00</span>
-                </div>
-                <div class="stat-row">
-                    <span>Payoff Time</span>
-                    <span th:text="${summary.monthsToPayoff} + ' months'">0</span>
-                </div>
-                <div class="stat-row">
-                    <span>Total Cost</span>
-                    <span th:text="${#numbers.formatDecimal(summary.totalCost, 1, 2)}">0.00</span>
+            </div>
+
+            <!-- Side-by-Side Comparison Matrix -->
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="padding: 1.25rem 1.5rem 0.5rem 1.5rem;">
+                    <h2 style="margin-bottom: 0.5rem; border-bottom: none; padding-bottom: 0;">Detailed Side-by-Side Matrix</h2>
+                    <p style="color: #64748b; font-size: 0.88rem;">Compare monthly payments, total interest costs, and financing parameters across scenarios.</p>
                 </div>
 
-                <div class="chart-container" style="height: 250px;">
-                    <canvas th:id="${'compareChart-' + iter.index}"></canvas>
+                <div class="table-responsive">
+                    <table class="comparison-matrix">
+                        <thead>
+                            <tr>
+                                <th class="row-header">Scenario / Metric</th>
+                                <th th:each="s : ${summaries}" class="loan-col-header">
+                                    <div th:text="${s.name}" style="font-weight: 700;">Scenario</div>
+                                    <div style="margin-top: 0.5rem; display: flex; justify-content: center; gap: 0.4rem;">
+                                        <a th:href="@{/loans/{id}(id=${s.id})}" class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 0.2rem 0.5rem; font-size: 0.75rem;">View</a>
+                                        <a th:href="@{/loans/{id}/copy(id=${s.id})}" class="btn" style="background: #0284c7; color: white; padding: 0.2rem 0.5rem; font-size: 0.75rem;">Copy</a>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Total Purchase / Car Price -->
+                            <tr>
+                                <th class="row-header">Car / Total Cost</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val">
+                                    <span th:if="${s.totalPrice != null && s.totalPrice > 0}" style="font-weight: 600;" th:text="'$' + ${#numbers.formatDecimal(s.totalPrice, 1, 2)}">$0.00</span>
+                                    <span th:unless="${s.totalPrice != null && s.totalPrice > 0}" style="color: #94a3b8;">&mdash;</span>
+                                </td>
+                            </tr>
+
+                            <!-- First Installment / Down Payment -->
+                            <tr>
+                                <th class="row-header">First Payment / Down Payment</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val">
+                                    <div th:if="${s.downPayment != null && s.downPayment > 0}">
+                                        <span style="color: #16a34a; font-weight: 700;" th:text="'$' + ${#numbers.formatDecimal(s.downPayment, 1, 2)}">$0.00</span>
+                                        <div th:if="${s.downPaymentPercent != null}" style="color: #64748b; font-size: 0.85rem;" th:text="'(' + ${#numbers.formatDecimal(s.downPaymentPercent, 1, 1)} + '%)'">(0%)</div>
+                                    </div>
+                                    <span th:unless="${s.downPayment != null && s.downPayment > 0}" style="color: #94a3b8;">&mdash;</span>
+                                </td>
+                            </tr>
+
+                            <!-- Financed Principal -->
+                            <tr>
+                                <th class="row-header">Financed Principal</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val" style="font-weight: 600;" th:text="'$' + ${#numbers.formatDecimal(s.principal, 1, 2)}">$0.00</td>
+                            </tr>
+
+                            <!-- Interest Rate -->
+                            <tr>
+                                <th class="row-header">Annual Interest Rate</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val" th:text="${s.annualInterestRate} + '%'">0%</td>
+                            </tr>
+
+                            <!-- Term -->
+                            <tr>
+                                <th class="row-header">Term Duration</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val" th:text="${s.termMonths} + ' months'">0</td>
+                            </tr>
+
+                            <!-- Monthly Payment -->
+                            <tr style="background: #f0fdf4;">
+                                <th class="row-header" style="background: #dcfce7; color: #166534; font-weight: 700;">Monthly Payment</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val">
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: #15803d;" th:text="'$' + ${#numbers.formatDecimal(s.monthlyPayment, 1, 2)}">$0.00</div>
+                                </td>
+                            </tr>
+
+                            <!-- Total Interest Paid -->
+                            <tr>
+                                <th class="row-header">Total Interest Paid</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val">
+                                    <div style="font-size: 1.1rem; font-weight: 600; color: #dc2626;" th:text="'$' + ${#numbers.formatDecimal(s.totalInterest, 1, 2)}">$0.00</div>
+                                </td>
+                            </tr>
+
+                            <!-- Payoff Time -->
+                            <tr>
+                                <th class="row-header">Payoff Time</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val" style="font-weight: 600;" th:text="${s.monthsToPayoff} + ' months'">0</td>
+                            </tr>
+
+                            <!-- Total Cost (Principal + Interest) -->
+                            <tr style="background: #f8fafc;">
+                                <th class="row-header" style="font-weight: 700;">Total Loan Cost (Financed + Int.)</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val" style="font-weight: 700; font-size: 1.1rem; color: #0f172a;" th:text="'$' + ${#numbers.formatDecimal(s.totalCost, 1, 2)}">$0.00</td>
+                            </tr>
+
+                            <!-- Total Out of Pocket (Down Payment + Total Cost) -->
+                            <tr>
+                                <th class="row-header">Total Purchase Cost (With Down Pmt)</th>
+                                <td th:each="s : ${summaries}" class="loan-col-val" style="font-weight: 600; color: #475569;"
+                                    th:text="'$' + ${#numbers.formatDecimal(s.totalCost + (s.downPayment != null ? s.downPayment : 0), 1, 2)}">$0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
         <script th:inline="javascript">
             const summaries = /*[[${summaries}]]*/ [];
-            summaries.forEach((summary, index) => {
-                const ctx = document.getElementById('compareChart-' + index).getContext('2d');
-                const data = summary.chartData;
-                const labels = data.map(d => d.month);
-                const totalPrincipal = data.map(d => d.principalPaid);
-                const totalInterest = data.map(d => d.interestPaid);
-                const balance = data.map(d => d.remainingBalance);
 
+            if (summaries && summaries.length >= 2) {
+                // Determine maximum months among all summaries
+                let maxMonths = 0;
+                summaries.forEach(s => {
+                    if (s.chartData && s.chartData.length > maxMonths) {
+                        maxMonths = s.chartData.length;
+                    }
+                });
+
+                const labels = Array.from({length: maxMonths}, (_, i) => 'Mo ' + (i + 1));
+                const colors = [
+                    { border: '#2563eb', bg: 'rgba(37, 99, 235, 0.1)' },
+                    { border: '#16a34a', bg: 'rgba(22, 163, 74, 0.1)' },
+                    { border: '#7c3aed', bg: 'rgba(124, 58, 237, 0.1)' },
+                    { border: '#ea580c', bg: 'rgba(234, 88, 12, 0.1)' },
+                    { border: '#0891b2', bg: 'rgba(8, 145, 178, 0.1)' },
+                    { border: '#e11d48', bg: 'rgba(225, 29, 72, 0.1)' }
+                ];
+
+                const datasets = summaries.map((s, idx) => {
+                    const color = colors[idx % colors.length];
+                    const balanceData = labels.map((_, i) => {
+                        return (i < s.chartData.length) ? s.chartData[i].remainingBalance : 0;
+                    });
+
+                    return {
+                        label: s.name + (s.downPaymentPercent ? ' (' + s.downPaymentPercent.toFixed(0) + '% Down)' : ''),
+                        data: balanceData,
+                        borderColor: color.border,
+                        backgroundColor: color.bg,
+                        borderWidth: 2.5,
+                        fill: false,
+                        tension: 0.15
+                    };
+                });
+
+                const ctx = document.getElementById('multiLoanChart').getContext('2d');
                 new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'Total Principal Paid',
-                                data: totalPrincipal,
-                                backgroundColor: 'rgba(52, 152, 219, 0.7)',
-                                type: 'line',
-                                fill: false,
-                                tension: 0.1
-                            },
-                            {
-                                label: 'Total Interest Paid',
-                                data: totalInterest,
-                                backgroundColor: 'rgba(231, 76, 60, 0.7)',
-                                type: 'line',
-                                fill: false,
-                                tension: 0.1
-                            },
-                            {
-                                label: 'Remaining Balance',
-                                data: balance,
-                                backgroundColor: 'rgba(46, 204, 113, 0.3)',
-                                borderColor: 'rgba(46, 204, 113, 1)',
-                                borderWidth: 2,
-                                type: 'line',
-                                fill: true,
-                                tension: 0.1
-                            }
-                        ]
-                    },
+                    type: 'line',
+                    data: { labels, datasets },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
                         plugins: {
                             tooltip: {
-                                mode: 'index',
                                 callbacks: {
-                                    label: function(context) {
-                                        return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
-                                    }
+                                    label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})
                                 }
+                            },
+                            legend: {
+                                position: 'top',
+                                labels: { font: { size: 12, weight: '600' } }
                             }
                         },
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return '$' + value.toLocaleString();
-                                    }
-                                }
+                                ticks: { callback: v => '$' + v.toLocaleString() },
+                                title: { display: true, text: 'Remaining Balance ($)' }
                             },
                             x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
-                                }
+                                ticks: { maxTicksLimit: 20 },
+                                title: { display: true, text: 'Loan Month' }
                             }
                         }
                     }
                 });
-            });
+            }
         </script>
     </div>
 </body>

@@ -12,7 +12,15 @@
         <a th:href="@{/loans/compare}">Compare</a>
     </nav>
     <div class="container">
-        <h1 th:text="${loan.id != null ? 'Edit Loan: ' + loan.name : 'Calculate New Loan'}">Loan Form</h1>
+        <h1 th:text="${loan.id != null ? 'Edit Loan: ' + loan.name : (isCopy ? 'Copy &amp; Customize Loan' : 'Calculate New Loan')}">Loan Form</h1>
+
+        <div th:if="${isCopy}" class="flash-success" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <span style="font-size: 1.35rem;">📋</span>
+            <div>
+                <strong>Copying from &ldquo;<span th:text="${copiedFromName}">Original Loan</span>&rdquo;:</strong>
+                All parameters are pre-filled below. Change the down payment (e.g., 30% or 40%), rate, or term to test scenarios, then save!
+            </div>
+        </div>
 
         <!-- Form for Edit -->
         <div class="card" th:if="${loan.id != null}">

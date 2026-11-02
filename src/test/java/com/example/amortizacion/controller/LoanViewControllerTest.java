@@ -114,4 +114,26 @@ class LoanViewControllerTest {
         assertThat(ep.getEndMonth()).isEqualTo(60);
         assertThat(ep.getRecurrenceType()).isEqualTo(RecurrenceType.ANNUALLY);
     }
+
+    @Test
+    void copyFormLoadsOriginalLoanAndPreFillsCopy() throws Exception {
+        Loan original = new Loan();
+        original.setId(5L);
+        original.setName("Tesla Model 3");
+        original.setTotalPrice(42000.0);
+        original.setDownPayment(8400.0);
+        original.setDownPaymentPercent(20.0);
+        original.setPrincipal(33600.0);
+        original.setAnnualInterestRate(5.5);
+        original.setTermMonths(60);
+
+        when(loanService.findByIdOrThrow(5L)).thenReturn(original);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/loans/5/copy"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.view().name("loans/form"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attributeExists("loan"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("isCopy", true))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("copiedFromName", "Tesla Model 3"));
+    }
 }

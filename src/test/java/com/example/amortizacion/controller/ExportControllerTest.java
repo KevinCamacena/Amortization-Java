@@ -1,0 +1,92 @@
+package com.example.amortizacion.controller;
+
+import com.example.amortizacion.entity.Loan;
+import com.example.amortizacion.service.AmortizationService;
+import com.example.amortizacion.service.ExportService;
+import com.example.amortizacion.service.LoanService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+
+@ExtendWith(MockitoExtension.class)
+class ExportControllerTest {
+
+    @Mock
+    private LoanService loanService;
+
+    @Mock
+    private AmortizationService amortizationService;
+
+    @Mock
+    private ExportService exportService;
+
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        ExportController controller = new ExportController(loanService, amortizationService, exportService);
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @Test
+    void compareWithoutLoanIdsDoesNotFailAndLoadsDefaults() throws Exception {
+        Loan loan1 = new Loan();
+        loan1.setId(1L);
+        loan1.setName("Loan 20% Down");
+        loan1.setPrincipal(28000.0);
+        loan1.setAnnualInterestRate(5.0);
+        loan1.setTermMonths(60);
+
+        Loan loan2 = new Loan();
+        loan2.setId(2L);
+        loan2.setName("Loan 30% Down");
+        loan2.setPrincipal(24500.0);
+        loan2.setAnnualInterestRate(5.0);
+        loan2.setTermMonths(60);
+
+        when(loanService.findAll()).thenReturn(List.of(loan1, loan2));
+        when(amortizationService.generateCompareSummary(any(Loan.class), eq(true)))
+                .thenReturn(new AmortizationService.LoanCompareSummary(
+                        1L, "Test", 35000.0, 7000.0, 20.0, 28000.0, 5.0, 60, 528.0, 3700.0, 60, 31700.0, List.of()
+                ));
+
+        mockMvc.perform(get("/loans/compare"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("loans/compare"))
+                .andExpect(model().attributeExists("allLoans"))
+                .andExpect(model().attributeExists("summaries"));
+    }
+
+    @Test
+    void compareWithSelectedLoanIdsLoadsSelectedSummaries() throws Exception {
+        Loan loan1 = new Loan();
+        loan1.setId(10L);
+        loan1.setName("Car 30% Down");
+
+        when(loanService.findAll()).thenReturn(List.of(loan1));
+        when(loanService.findByIdOrThrow(10L)).thenReturn(loan1);
+        when(amortizationService.generateCompareSummary(loan1, true))
+                .thenReturn(new AmortizationService.LoanCompareSummary(
+                        10L, "Car 30% Down", 30000.0, 9000.0, 30.0, 21000.0, 5.0, 48, 483.0, 2200.0, 48, 23200.0, List.of()
+                ));
+
+        mockMvc.perform(get("/loans/compare").param("loanIds", "10"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("loans/compare"))
+                .andExpect(model().attributeExists("summaries"));
+    }
+}

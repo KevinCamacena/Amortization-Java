@@ -17,6 +17,7 @@
             <h1><span th:text="${loan.name}">Loan</span></h1>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                 <a th:href="@{/loans}" class="btn btn-secondary">&larr; Back</a>
+                <a th:href="@{/loans/{id}/copy(id=${loan.id})}" class="btn" style="background: #0284c7; color: white;" title="Duplicate &amp; test variations">Copy</a>
                 <a th:href="@{/loans/{id}/edit(id=${loan.id})}" class="btn btn-secondary">Edit</a>
                 <a th:href="@{/loans/{id}/export/csv(id=${loan.id}, includeExtra=${includeExtra})}" class="btn btn-success">Export CSV</a>
                 <a th:href="@{/loans/{id}/export/pdf(id=${loan.id}, includeExtra=${includeExtra})}" class="btn btn-success">Export PDF</a>

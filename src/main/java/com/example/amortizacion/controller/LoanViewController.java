@@ -87,6 +87,39 @@ public class LoanViewController {
         return "loans/form";
     }
 
+    @GetMapping("/{id}/copy")
+    public String copyForm(@PathVariable Long id, Model model) {
+        Loan original = loanService.findByIdOrThrow(id);
+
+        Loan copy = new Loan();
+        copy.setName(original.getName() + " (Copy)");
+        copy.setTotalPrice(original.getTotalPrice());
+        copy.setDownPayment(original.getDownPayment());
+        copy.setDownPaymentPercent(original.getDownPaymentPercent());
+        copy.setPrincipal(original.getPrincipal());
+        copy.setAnnualInterestRate(original.getAnnualInterestRate());
+        copy.setTermMonths(original.getTermMonths());
+
+        if (original.getExtraPayments() != null) {
+            for (ExtraPayment ep : original.getExtraPayments()) {
+                ExtraPayment epCopy = new ExtraPayment();
+                epCopy.setMonthNumber(ep.getMonthNumber());
+                epCopy.setEndMonth(ep.getEndMonth());
+                epCopy.setAmount(ep.getAmount());
+                epCopy.setRecurrenceType(ep.getRecurrenceType());
+                epCopy.setEnabled(ep.getEnabled());
+                copy.addExtraPayment(epCopy);
+            }
+        }
+
+        model.addAttribute("loan", copy);
+        model.addAttribute("extraPayment", new ExtraPayment());
+        model.addAttribute("recurrenceTypes", RecurrenceType.values());
+        model.addAttribute("isCopy", true);
+        model.addAttribute("copiedFromName", original.getName());
+        return "loans/form";
+    }
+
     @PostMapping("/{id}")
     public String update(@PathVariable Long id,
                          @Valid @ModelAttribute Loan loan,

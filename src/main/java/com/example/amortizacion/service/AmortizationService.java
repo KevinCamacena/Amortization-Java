@@ -173,10 +173,14 @@ public class AmortizationService {
         List<ChartPoint> chartData = generateChartData(loan, includeExtraPayments);
 
         return new LoanCompareSummary(
+            loan.getId(),
             loan.getName(),
             loan.getTotalPrice(),
             loan.getDownPayment(),
+            loan.getDownPaymentPercent(),
             principal,
+            annualRate,
+            termMonths,
             monthlyPayment,
             totalInterest,
             monthsToPayoff,
@@ -186,10 +190,14 @@ public class AmortizationService {
     }
 
     public record LoanCompareSummary(
+        Long id,
         String name,
         Double totalPrice,
         Double downPayment,
+        Double downPaymentPercent,
         double principal,
+        double annualInterestRate,
+        int termMonths,
         double monthlyPayment,
         double totalInterest,
         int monthsToPayoff,
