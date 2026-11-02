@@ -41,6 +41,7 @@ public class LoanViewController {
         model.addAttribute("loan", new Loan());
         model.addAttribute("extraPayment", new ExtraPayment());
         model.addAttribute("recurrenceTypes", RecurrenceType.values());
+        model.addAttribute("isCopy", false);
         return "loans/form";
     }
 
@@ -60,6 +61,7 @@ public class LoanViewController {
                     loan.getPrincipal() > 0;
             if (!onlyPrincipalNullError) {
                 model.addAttribute("recurrenceTypes", RecurrenceType.values());
+                model.addAttribute("isCopy", false);
                 return "loans/form";
             }
         }
@@ -84,6 +86,7 @@ public class LoanViewController {
         model.addAttribute("loan", loan);
         model.addAttribute("extraPayment", new ExtraPayment());
         model.addAttribute("recurrenceTypes", RecurrenceType.values());
+        model.addAttribute("isCopy", false);
         return "loans/form";
     }
 
@@ -134,6 +137,7 @@ public class LoanViewController {
                     loan.getPrincipal() > 0;
             if (!onlyPrincipalNullError) {
                 model.addAttribute("recurrenceTypes", RecurrenceType.values());
+                model.addAttribute("isCopy", false);
                 return "loans/form";
             }
         }
